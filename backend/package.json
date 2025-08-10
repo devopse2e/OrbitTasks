@@ -10,20 +10,24 @@
     "test:ci": "jest --ci --reporters=default --reporters=jest-junit --coverage --coverageReporters=cobertura"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0",
-    "dotenv": "^16.3.1",
-    "joi": "^17.9.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "chrono-node": "^2.8.4",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0",
-    "mongoose": "^8.0.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "joi": "^17.9.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.0",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "jest": "^29.6.1",
-    "supertest": "^6.3.3",
+    "jest-junit": "^16.0.0",
     "nodemon": "^3.0.1",
-    "jest-junit": "^16.0.0"
+    "supertest": "^6.3.3"
   },
   "jest": {
     "testEnvironment": "node",

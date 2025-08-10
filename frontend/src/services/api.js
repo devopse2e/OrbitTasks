@@ -1,101 +1,192 @@
 import axios from 'axios';
 
-const API_BASE_URL =  '/api'; // Use proxy in dev, override in prod
+const API_BASE_URL = '/api'; // Use proxy in dev, override in prod
 
 // Create axios instance with configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000, // Slightly increased for potential DB delays
+  timeout: 15000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
+  // withCredentials: true,
 });
 
-// Request interceptor for debugging
+// Request interceptor to attach auth token to headers
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    let user = null;
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser && rawUser !== 'undefined') {
+        user = JSON.parse(rawUser);
+      } else {
+        console.warn('localStorage.user is empty or undefined');
+      }
+    } catch (e) {
+      console.error('Error parsing user from localStorage:', e);
+    }
+    if (user && user.token) {
+      config.headers['Authorization'] = `Bearer ${user.token}`;
+      console.log('Authorization header added for:', config.url);
+    } else {
+      // console.log('No token found for:', config.url);
+    }
     return config;
   },
-  (error) => {
-    console.error('Request Error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and standardized error messages
 api.interceptors.response.use(
-  (response) => {
-    console.log('API Response:', response.status, response.config.url);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error('Response Error:', error.response?.status, error.response?.data);
-    // Handle different error types with user-friendly messages
     if (error.code === 'ECONNABORTED') {
-      throw new Error('Request timeout. Please try again.');
+      return Promise.reject(new Error('Request timeout. Please try again.'));
     }
     if (!error.response) {
-      throw new Error('Network error. Please check your connection.');
+      return Promise.reject(new Error('Network error. Please check your connection.'));
     }
     const { status, data } = error.response;
+
+    if (status === 401) {
+      return Promise.reject(new Error(data.error || 'Authorization failed. Please log in again.'));
+    }
     switch (status) {
       case 400:
-        throw new Error(data.error || 'Invalid request. Please check your input.');
+        return Promise.reject(new Error(data.error || 'Invalid request. Please check your input.'));
       case 404:
-        throw new Error('Todo not found.');
+        return Promise.reject(new Error(data.error || 'Resource not found.'));
       case 500:
-        throw new Error('Server error. Please try again later.');
+        return Promise.reject(new Error('Server error. Please try again later.'));
       default:
-        throw new Error(data.error || 'An unexpected error occurred.');
+        return Promise.reject(new Error(data.error || 'An unexpected error occurred.'));
     }
   }
 );
 
+// --- Authentication Service ---
+export const authService = {
+  register: async (userData) => {
+    try {
+      const response = await api.post('/auth/register', userData);
+      if (response.data) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+      }
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  login: async (credentials) => {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      if (response.data) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+      }
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem('user');
+  },
+
+  // --- ADDED: Forgot Password Direct ---
+  forgotPasswordDirect: async ({ email, newPassword, confirmPassword }) => {
+    try {
+      const response = await api.post('/auth/forgot-password-direct', {
+        email,
+        newPassword,
+        confirmPassword,
+      });
+      return response.data; // will have .message or error
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// --- User Service ---
+export const userService = {
+  getProfile: async () => {
+    try {
+      const response = await api.get('/user/profile');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/user/profile', profileData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updatePassword: async (passwordData) => {
+    try {
+      const response = await api.put('/user/password', passwordData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+// --- Todo Service ---
 export const todoService = {
-  // Get all todos
   getTodos: async () => {
     try {
       const response = await api.get('/todos');
       return response.data;
     } catch (error) {
-      console.error('Get todos failed:', error);
       throw error;
     }
   },
 
-  // Create a new todo
-  createTodo: async (todoData) => { // <-- Accept the full object: todoData
+  createTodo: async (todoData) => {
     try {
-      const response = await api.post('/todos', todoData); // <-- Send as-is to backend
+      const response = await api.post('/todos', todoData);
       return response.data;
     } catch (error) {
-      console.error('Create todo failed:', error);
       throw error;
     }
   },
 
-  // Update todo
   updateTodo: async (id, updates) => {
     try {
       const response = await api.put(`/todos/${id}`, updates);
       return response.data;
     } catch (error) {
-      console.error('Update todo failed:', error);
       throw error;
     }
   },
 
-  // Delete todo
   deleteTodo: async (id) => {
     try {
       await api.delete(`/todos/${id}`);
       return true;
     } catch (error) {
-      console.error('Delete todo failed:', error);
       throw error;
     }
-  }
+  },
+
+  parseTaskDetails: async (taskTitle) => {
+    try {
+      const response = await api.post('/parse-task-details', { taskTitle });
+      return response.data;
+    } catch (error) {
+      // If NLP fails, return null
+      return null;
+    }
+  },
 };
 
 export default api;

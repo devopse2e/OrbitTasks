@@ -1,0 +1,116 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap');
+
+.side-banner {
+  position: fixed;
+  top: 30%;
+  transform: translateY(-50%);
+  z-index: 40;
+  width: 380px;
+  max-width: 39vw;
+  pointer-events: none;
+  user-select: none;
+  font-family: 'Dancing Script', cursive;
+  letter-spacing: 0.02em;
+  font-weight: 700; /* Medium-bold */
+  font-style: normal; /* cursive font is already stylized, no need for italic */
+  font-size: 2.4rem; /* Slightly larger for script legibility */
+  color: #fff;
+  text-shadow:
+    0 4px 14px rgba(41, 25, 99, 0.15),
+    0 1px 3px rgba(18, 0, 67, 0.1);
+  display: flex;
+  align-items: flex-start;
+  background: none !important;
+  opacity: 0.98;
+  padding: 4px 6px 0 6px; /* Avoid clipping in cursive tails */
+  animation: floatFadeIn 1.2s cubic-bezier(.14,1,.22,1) forwards;
+}
+
+.left-banner {
+  justify-content: flex-start;
+  left: 40px;
+  text-align: left;
+}
+
+.right-banner {
+  justify-content: flex-end;
+  right: 40px;
+  text-align: right;
+}
+
+/* Kinetic Welcome Text with wave emoji */
+.kinetic-welcome {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  cursor: default;
+}
+
+/* Wave Emoji Animation (unchanged) */
+.wave-emoji {
+  font-size: 1.45em;
+  display: inline-block;
+  margin-right: 5px;
+  animation: emojiWave 2.8s infinite alternate cubic-bezier(.77,.16,.22,.94);
+  transform-origin: 60% 70%;
+}
+
+/* Gradient kinetic name text */
+.kinetic-name {
+  background: linear-gradient(91deg, #ca93f2 10%, #7c59ae 60%, #a49bef 100%);
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shinebg 3.8s linear infinite;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* Right banner kinetic tip */
+.kinetic-tip {
+  font-size: 1.16em;
+  font-weight: 600;
+  color: transparent;
+  background: linear-gradient(92deg, #a89cf0, #7a3ced 85%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  letter-spacing: 0.1em;
+  animation:
+    tipMoveFade 1.1s cubic-bezier(.66, .01, .11, .99),
+    tipShine 3.8s linear infinite;
+  will-change: opacity, transform;
+  user-select: none;
+}
+
+/* Keyframe animations - unchanged */
+@keyframes floatFadeIn {
+  from { opacity: 0; transform: translateY(-22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes emojiWave {
+  0%  { transform: rotateZ(0deg); }
+  20% { transform: rotateZ(14deg); }
+  40% { transform: rotateZ(-12deg); }
+  60% { transform: rotateZ(10deg); }
+  80% { transform: rotateZ(-7deg); }
+  100%{ transform: rotateZ(0deg); }
+}
+@keyframes shinebg {
+  0%   { background-position: 0% 58%; }
+  100% { background-position: 100% 52%; }
+}
+@keyframes tipMoveFade {
+  from { opacity: 0; transform: translateY(34%) scaleX(0.95); }
+  80%  { opacity: 0.94; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tipShine {
+  0%   { filter: brightness(1.04); }
+  35%  { filter: brightness(1.12); }
+  65%  { filter: brightness(0.98); }
+  100% { filter: brightness(1.08); }
+}

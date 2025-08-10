@@ -10,7 +10,7 @@ describe('App', () => {
     await act(async () => {
       render(<App />);
     });
-    expect(screen.getByRole('heading', { name: /todo app/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Todo/i })).toBeInTheDocument();
     expect(screen.getByText(/stay organized/i)).toBeInTheDocument();
   });
 });

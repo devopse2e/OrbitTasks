@@ -1,18 +1,27 @@
 const express = require('express');
 const router = express.Router();
+
 const todoController = require('../controllers/todoController');
-const { validateTodo, validateTodoUpdate } = require('../middleware/validation');
 
-// GET /api/todos - Fetch all todos
-router.get('/', todoController.getAllTodos);
+// FIX: Import the new authentication middleware
+const { protect } = require('../middleware/auth');
 
-// POST /api/todos - Create a new todo
-router.post('/', validateTodo, todoController.createTodo);
+const { validateTodo, validateTodoUpdate } = require('../middleware/validation'); // Assuming this is the correct path
 
-// PUT /api/todos/:id - Update a todo
-router.put('/:id', validateTodoUpdate, todoController.updateTodo);
+// GET /api/todos - Fetch all todos for the logged-in user
+// FIX: Apply the 'protect' middleware to this route
+router.get('/', protect, todoController.getAllTodos);
 
-// DELETE /api/todos/:id - Delete a todo
-router.delete('/:id', todoController.deleteTodo);
+// POST /api/todos - Create a new todo for the logged-in user
+// FIX: Apply the 'protect' middleware to this route
+router.post('/', protect, validateTodo, todoController.createTodo);
+
+// PUT /api/todos/:id - Update a todo for the logged-in user
+// FIX: Apply the 'protect' middleware to this route
+router.put('/:id', protect, validateTodoUpdate, todoController.updateTodo);
+
+// DELETE /api/todos/:id - Delete a todo for the logged-in user
+// FIX: Apply the 'protect' middleware to this route
+router.delete('/:id', protect, todoController.deleteTodo);
 
 module.exports = router;

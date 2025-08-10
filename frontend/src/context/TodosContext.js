@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useContext } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { todoService } from '../services/api';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from './AuthContext';
 
-export const useTodos = () => {
+const TodosContext = createContext(null);
+
+export const TodosProvider = ({ children }) => {
   const { user } = useContext(AuthContext);
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ export const useTodos = () => {
 
   const isGuest = user?.isGuest;
 
-  // Safely parse JSON for guest todo data in localStorage
+  // Safe JSON parse helper for guest todo data in localStorage
   const safeParseJson = (json) => {
     if (!json || json === 'undefined') return null;
     try {
@@ -20,7 +22,7 @@ export const useTodos = () => {
     }
   };
 
-  // Fetch todos from API or localStorage based on user type
+  // Fetch todos from API or localStorage depending on user type
   const fetchTodos = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -43,12 +45,11 @@ export const useTodos = () => {
     }
   }, [user, isGuest]);
 
-  // Fetch todos when user or guest info changes
   useEffect(() => {
     fetchTodos();
   }, [fetchTodos]);
 
-  // Helper to update guest todos state and sync to localStorage
+  // Helper to update guest todos and sync to localStorage
   const updateGuestTodos = useCallback((newTodosOrUpdater) => {
     setTodos((prev) => {
       const newTodos = typeof newTodosOrUpdater === 'function'
@@ -56,14 +57,12 @@ export const useTodos = () => {
         : newTodosOrUpdater;
       try {
         localStorage.setItem('guestTodos', JSON.stringify(newTodos));
-      } catch {
-        // Ignore localStorage write errors silently
-      }
+      } catch {}
       return newTodos;
     });
   }, []);
 
-  // Add todo (guest or authenticated)
+  // Add new todo
   const addTodo = useCallback(async (todoData) => {
     try {
       if (isGuest) {
@@ -83,23 +82,32 @@ export const useTodos = () => {
     }
   }, [isGuest, updateGuestTodos]);
 
-  // Edit existing todo by ID
+  // Edit todo (support completedAt logic)
   const editTodo = useCallback(async (id, updates) => {
     try {
       if (isGuest) {
         updateGuestTodos((prev) =>
-          prev.map((t) => (t._id === id ? { ...t, ...updates } : t))
+          prev.map((t) => t._id === id
+            ? { ...t, ...updates, completedAt: updates.completed ? (t.completedAt || new Date().toISOString()) : null }
+            : t)
         );
       } else {
-        const updatedTodo = await todoService.updateTodo(id, updates);
-        setTodos((prev) => prev.map((t) => (t._id === id ? updatedTodo : t)));
+        const prevTodo = todos.find((t) => t._id === id);
+        let payload = { ...updates };
+        if (typeof updates.completed === 'boolean') {
+          payload.completedAt = updates.completed
+            ? prevTodo?.completedAt || new Date().toISOString()
+            : null;
+        }
+        const updatedTodo = await todoService.updateTodo(id, payload);
+        setTodos((prev) => prev.map((t) => t._id === id ? updatedTodo : t));
       }
     } catch (err) {
       setError(err);
     }
-  }, [isGuest, updateGuestTodos]);
+  }, [isGuest, updateGuestTodos, todos]);
 
-  // Delete todo by ID
+  // Delete todo
   const deleteTodo = useCallback(async (id) => {
     try {
       if (isGuest) {
@@ -113,7 +121,7 @@ export const useTodos = () => {
     }
   }, [isGuest, updateGuestTodos]);
 
-  // Toggle completion status with optimistic UI update and backend sync
+  // Toggle todo completion with optimistic UI update
   const toggleTodo = useCallback(async (id, completed) => {
     try {
       if (isGuest) {
@@ -125,7 +133,7 @@ export const useTodos = () => {
           )
         );
       } else {
-        // Optimistic UI update: update todos state immediately
+        // Optimistically update todos state
         setTodos((prev) =>
           prev.map((t) =>
             t._id === id
@@ -133,21 +141,14 @@ export const useTodos = () => {
               : t
           )
         );
-
-        // Find todo locally to get recurrence info
-        const todo = todos.find((t) => t._id === id);
-        if (!todo) throw new Error('Todo not found');
-
-        const updatePayload = {
+        const currentTodo = todos.find((t) => t._id === id);
+        if (!currentTodo) throw new Error("Todo not found");
+        const payload = {
           completed,
           completedAt: completed ? new Date().toISOString() : null,
-          recurrencePattern: todo.recurrencePattern || 'none'
+          recurrencePattern: currentTodo.recurrencePattern || "none",
         };
-
-        // Update backend
-        await todoService.updateTodo(id, updatePayload);
-
-        // Refetch todos to keep synced with backend (in case of recurrence logic etc.)
+        await todoService.updateTodo(id, payload);
         await fetchTodos();
       }
     } catch (err) {
@@ -155,15 +156,29 @@ export const useTodos = () => {
     }
   }, [isGuest, updateGuestTodos, fetchTodos, todos]);
 
-  return {
-    todos,
-    setTodos,
-    loading,
-    error,
-    addTodo,
-    toggleTodo,
-    editTodo,
-    deleteTodo,
-    fetchTodos,
-  };
+  return (
+    <TodosContext.Provider
+      value={{
+        todos,
+        loading,
+        error,
+        addTodo,
+        editTodo,
+        deleteTodo,
+        toggleTodo,
+        fetchTodos,
+        setTodos,
+      }}
+    >
+      {children}
+    </TodosContext.Provider>
+  );
+};
+
+export const useTodosContext = () => {
+  const context = useContext(TodosContext);
+  if (!context) {
+    throw new Error("useTodosContext must be used within a TodosProvider");
+  }
+  return context;
 };

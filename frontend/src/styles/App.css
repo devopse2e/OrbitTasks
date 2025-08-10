@@ -1,43 +1,68 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* frontend/src/styles/App.css */
+/* (Complete safe polished update reflecting your design goals with light/dark theme support) */
+
+/* Base theme variables (dark is default) */
+:root {
+  --bg-color: #111827;            /* dark background */
+  --text-color: #e5e7eb;          /* light text */
+  --primary-color: #7c3aed;       /* purple accent */
+  --primary-color-light: #a78bfa; /* lighter purple */
+  --muted-text: #9ca3af;          /* muted/gray text */
+  --dropdown-bg: #23263a;         /* dropdown background */
+  --dropdown-hover-bg: #3b366b;   /* dropdown hover bg */
+  --danger-color: #fc5a5a;        /* dangerous action color */
+  --modal-bg: rgba(20,16,36,0.67); /* modal overlay background */
+  --card-bg: #1f2937;             /* card/modal background */
+  --box-shadow: rgba(124,58,237,0.20); /* shadows */
 }
 
+/* Light theme overrides */
+body.light {
+  --bg-color: #f9fafb;            /* very light background */
+  --text-color: #1f2937;          /* dark text */
+  --primary-color: #7c3aed;
+  --primary-color-light: #a78bfa;
+  --muted-text: #6b7280;          /* darker muted text */
+  --dropdown-bg: #f3f4f6;         /* light dropdown bg */
+  --dropdown-hover-bg: #d1d5db;   /* light dropdown hover */
+  --danger-color: #dc2626;        /* slightly darker danger red */
+  --modal-bg: rgba(243,244,246, 0.9); /* light modal overlay */
+  --card-bg: #e5e7eb;             /* card/modal background for light */
+  --box-shadow: rgba(124,58,237,0.14);
+}
+
+/* Apply theme colors */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
 }
 
-.main-bg {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.todo-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+/* 
+  The .main-bg and .todo-card classes have been completely removed.
+  They are replaced by this simpler .App wrapper which provides padding
+  and a max-width for readability on large screens.
+*/
+.App {
   width: 100%;
-  max-width: 600px;
-  overflow: hidden;
+  max-width: 900px; /* Increased max-width for a more spacious feel */
+  margin: 0 auto;    /* Centers the content horizontally */
+  padding: 3rem 2rem; /* Provides vertical and horizontal spacing */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
+
 
 .todo-header {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, var(--primary-color) 100%);
   color: white;
   padding: 30px;
   text-align: center;
+  border-radius: 20px 20px 0 0; /* Rounded corners for the top */
 }
+
 
 .todo-emoji {
   font-size: 2.5rem;
@@ -46,17 +71,20 @@ body {
   animation: bounce 2s infinite;
 }
 
+
 @keyframes bounce {
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-10px); }
   60% { transform: translateY(-5px); }
 }
 
+
 .todo-header h1 {
   font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
 }
+
 
 .todo-header p {
   font-size: 1.1rem;
@@ -65,10 +93,390 @@ body {
   margin-top: 8px;
 }
 
+
 .todo-footer {
   padding: 20px;
   text-align: center;
-  background: #f8fafc;
-  color: #64748b;
+  color: rgba(var(--text-color-rgb, 229, 231, 235), 0.7); /* Light text color, uses fallback */
   font-size: 0.9rem;
+}
+
+
+/* Side banners */
+
+.side-banner {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
+  padding: 1rem;
+}
+
+/* Left & Right banner colors can remain same or adapt if you want */
+
+/* Header */
+
+.app-header {
+  /* Override to get to the edges visually */
+  width: 100%;
+  max-width: 100vw;
+  padding: 0; /* No horizontal padding */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px; /* vertical alignment unchanged */
+  box-sizing: border-box;
+}
+
+
+.header-left {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 0;
+  padding-left: 0;                /* Only a tiny gap for breathing room */
+}
+
+.app-brand-logo {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  user-select: none;
+  cursor: auto;
+  transition: color 0.16s;
+}
+
+.app-brand-logo svg {
+  flex-shrink: 0;
+}
+
+.app-name-gradient {
+  color: #7c3aed;
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: 1.2px;
+  line-height: 1;
+}
+
+.app-name-solid {
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: 1.2px;
+  user-select: none;
+  white-space: nowrap;
+  color: var(--primary-color); /* default: for light theme */
+}
+
+body.dark .app-name-solid {
+  color: #fff; /* bright white in dark mode for contrast */
+}
+.header-nav {
+  display: flex;
+  gap: 20px;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.nav-link {
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.05rem;
+  padding: 7px 16px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  background: rgba(124, 58, 237, 0.13);
+  color: #fff;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-right: 0;
+  padding-right: 0;               /* Only a tiny gap for breathing room */
+}
+.user-profile-menu {
+  position: relative;
+}
+
+.avatar-btn {
+  background: rgba(124, 58, 237, 0.11);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  box-shadow: 0 3px 18px rgba(124, 58, 237, 0.20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.18s, background 0.18s;
+}
+
+.avatar-btn:hover,
+.avatar-btn:focus {
+  background: rgba(124, 58, 237, 0.19);
+  box-shadow: 0 8px 30px rgba(167, 139, 250, 0.19);
+}
+
+.user-avatar,
+.user-avatar-fallback {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--primary-color);
+  color: var(--text-color);
+  font-weight: 800;
+  font-size: 1.38rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px #fff2, 0 4px 16px rgba(167, 139, 250, 0.07);
+}
+
+/* Dropdown menu */
+
+.profile-dropdown {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  background: var(--dropdown-bg);
+  border-radius: 12px;
+  min-width: 175px;
+  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.21);
+  padding: 8px 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  animation: fadeinpop 0.2s;
+  overflow: hidden;    /* <-- IMPORTANT! Clips highlights inside dropdown */
+}
+
+@keyframes fadeinpop {
+  0% { transform: translateY(10px) scale(0.96); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+.profile-dropdown .dropdown-item,
+.profile-dropdown button {
+  all: unset;
+  width: 100%;
+  padding: 11px 24px 11px 22px;
+  color: var(--text-color);
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background .17s, color .17s;
+  text-align: left;
+  box-sizing: border-box;
+  outline: none;
+  font-weight: 500;
+  background: none;
+  margin: 0;
+}
+
+.profile-dropdown .dropdown-item:hover,
+.profile-dropdown button:hover,
+.profile-dropdown .dropdown-item:focus,
+.profile-dropdown button:focus {
+  background: var(--dropdown-hover-bg);
+  color: #fff;
+}
+
+.profile-dropdown .danger {
+  color: var(--danger-color);
+}
+
+/* Close button for modal */
+.close-btn {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  background: none;
+  color: #b8aaff;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+/* Profile Modal overlay and card */
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  animation: fadeinpop 0.22s ease;
+}
+
+.profile-modal-card {
+  background: var(--card-bg);
+  border-radius: 18px;
+  box-shadow: 0 10px 40px var(--box-shadow);
+  min-width: 370px;
+  max-width: 96vw;
+  padding: 0; /* Let profile container handle padding */
+  color: var(--text-color);
+}
+
+/* Remove box-shadow and margin on the profile container inside modal */
+.profile-container {
+  box-shadow: none;
+  background: var(--card-bg);
+  border-radius: 18px;
+  margin: 0;
+  max-width: 600px; /* optionally constrain width */
+}
+
+
+@media (max-width:700px) {
+  .app-header { padding: 0 1rem; max-width: 100vw; }
+  .app-brand-logo { font-size: 1.3rem; padding: 8px 16px 8px 10px; }
+  .app-name-gradient { font-size: 1.2rem;}
+  .avatar-btn { width: 42px; height: 42px; }
+  .user-avatar, .user-avatar-fallback { width: 36px; height: 36px; font-size: 1rem; }
+}
+
+/* === Theme Toggle ===== */
+.theme-toggle-row {
+  /* **Matches other dropdown items for alignment** */
+  width: 100%;
+  padding: 11px 24px 11px 22px;
+  background: none !important;
+  cursor: default;
+  box-sizing: border-box;
+  /* Remove highlight/hover for this row */
+}
+
+.theme-toggle-row:hover,
+.theme-toggle-row:focus {
+  background: none !important;
+}
+
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0;
+  user-select: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--muted-text);
+  transition: color 0.3s ease;
+}
+
+/* Active label styling: brighter, glowing */
+.theme-label.active {
+  color: var(--text-color);
+}
+
+/* Styling for each theme label text */
+.theme-label {
+  user-select: none;
+  transition: color 0.3s;
+  cursor: pointer;
+  font-weight: 500;
+  background: none;
+  /* Removes highlight effect */
+}
+
+/* Toggle switch container */
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #555770;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* Toggle knob */
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  background: #c6c6f1;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px var(--primary-color);
+  transition: left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+
+/* Knob position and color states */
+.toggle-knob.light {
+  left: 2px;
+  background: var(--primary-color-light);
+  box-shadow: 0 2px 10px var(--primary-color);
+}
+
+.toggle-knob.dark {
+  left: 20px;
+  background: #555770;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Toggle background changes based on theme */
+.theme-toggle-container[aria-checked="true"] .toggle-switch {
+  background: var(--primary-color);
+}
+
+/* Focus outline for accessibility */
+.theme-toggle-container:focus-visible {
+  outline: 2px solid var(--primary-color-light);
+  outline-offset: 3px;
+}
+
+.toast {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  min-width: 220px;
+  padding: 14px 28px;
+  background: #34d399;
+  color: #181c25;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px 0 rgba(36, 18, 99, 0.13);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  animation: fadeInOut 2.8s cubic-bezier(.33,1.69,.77,1.13);
+}
+.toast.error {
+  background: #e04e49;
+  color: #fff;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-12px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-12px);}
 }

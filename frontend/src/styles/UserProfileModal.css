@@ -1,0 +1,178 @@
+:root {
+  /* Dark theme defaults */
+  --modal-bg: #212338;
+  --modal-border: #363668;
+  --modal-header: #a78bfa;         /* purple accent */
+  --modal-label: #a78bfa;          /* purple for labels/titles in dark */
+  --modal-input-bg: #181930;
+  --modal-input-text: #f4f4fa;
+  --modal-input-border: #7c3aed;
+  --modal-input-readonly-bg: #23263a;
+  --modal-input-readonly-border: #363668;
+  --modal-close: #a78bfa;
+  --modal-actions-bg: transparent;
+  --modal-action-hover: #282050;
+  --modal-cancel-border: #522ed9;
+  --modal-shadow: 0 8px 36px rgba(80,60,140,0.12);
+}
+
+body.light {
+  /* Light theme uses near-black for all accents, not purple */
+  --modal-bg: #fff;
+  --modal-border: #e6eaf2;
+  --modal-header: #7c3aed;         /* near-black for headings */
+  --modal-label: #181c25;          /* same for labels */
+  --modal-input-bg: #f4f6fa;
+  --modal-input-text: #23263a;
+  --modal-input-border: #181c25;   /* input border is dark, not purple */
+  --modal-input-readonly-bg: #f2f3fa;
+  --modal-input-readonly-border: #e1e4eb;
+  --modal-close: #181c25;
+  --modal-actions-bg: transparent;
+  --modal-action-hover: #ececec;
+  --modal-cancel-border: #181c25; /* dark border */
+  --modal-shadow: 0 8px 36px rgba(20, 20, 20, 0.07);
+}
+
+.simple-modal-overlay {
+  position: fixed; inset: 0; z-index: 1002;
+  /* background: rgba(29,27,42,0.83); */
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeinpop 0.22s;
+}
+
+.simple-profile-modal {
+  background: var(--modal-bg);
+  backdrop-filter: blur(8px); 
+  color: var(--modal-header);
+  border-radius: 16px;
+  box-shadow: var(--modal-shadow);
+  min-width: 330px;
+  max-width: 96vw;
+  padding: 38px 32px 24px 32px;
+  position: relative;
+  display: flex; flex-direction: column; gap: 20px;
+  border: 1.5px solid var(--modal-border);
+}
+
+.modal-close-btn {
+  position: absolute; top: 12px; right: 18px;
+  background: none; border: none;
+  font-size: 2rem; color: var(--modal-close);
+  cursor: pointer; opacity: .65;
+  transition: opacity 0.2s, color 0.2s;
+}
+.modal-close-btn:hover { opacity: 1; color: var(--modal-header); }
+
+.simple-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.34rem;
+  color: var(--modal-header);
+  font-weight: 1000;
+  text-align: left;
+}
+
+.simple-profile-modal label {
+  font-size: 1rem;
+  color: var(--modal-label);
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-input,
+.simple-profile-modal input {
+  margin-top: 3px;
+  background: var(--modal-input-bg);
+  color: var(--modal-input-text);
+  border: 1.5px solid var(--modal-input-border);
+  border-radius: 8px;
+  font-size: 1.08rem;
+  padding: 9px 12px;
+  margin-bottom: 0;
+  box-sizing: border-box;
+  transition: border-color 0.2s, background 0.2s;
+}
+.simple-profile-modal input:focus {
+  outline: none;
+  border-color: var(--modal-header);
+  background: var(--modal-input-bg);
+}
+.profile-input.readonly,
+.simple-profile-modal input[readonly] {
+  color: #8b8fa5;
+  background: var(--modal-input-readonly-bg);
+  border: 1.5px solid var(--modal-input-readonly-border);
+  cursor: not-allowed;
+  opacity: 0.93;
+}
+
+.simple-modal-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  background: var(--modal-actions-bg);
+}
+
+.save-btn {
+  background: linear-gradient(90deg,var(--modal-header) 0%, var(--modal-label) 100%);
+  color: #fff;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 10px 24px;
+  cursor: pointer;
+  box-shadow: 0 2px 16px rgba(124,58,237,0.11);
+  transition: background 0.2s;
+}
+.save-btn[disabled] { opacity: 0.7; cursor:not-allowed }
+
+.cancel-btn {
+  background: none;
+  color: var(--modal-header);
+  border: 1.2px solid var(--modal-cancel-border);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.cancel-btn:hover {
+  background: var(--modal-action-hover);
+  color: var(--modal-label);
+}
+
+@keyframes fadeinpop {
+  0% { transform: translateY(10px) scale(.97); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* Optional: Modal tabs if you later add them (theme-aware) */
+.modal-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--modal-border);
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+.modal-tab-btn {
+  background: none;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #bbb;
+  border-bottom: 2px solid transparent;
+  transition: color 0.3s, border-color 0.3s;
+}
+.modal-tab-btn:hover,
+.modal-tab-btn:focus {
+  color: var(--modal-label);
+  outline: none;
+}
+.modal-tab-btn.active {
+  color: var(--modal-header);
+  border-color: var(--modal-header);
+}

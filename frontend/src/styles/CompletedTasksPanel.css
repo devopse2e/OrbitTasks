@@ -1,0 +1,127 @@
+/* Floating panel container for completed tasks */
+.completed-tasks-floating-card {
+  position: fixed;
+  z-index: 1050;
+  background: var(--dropdown-bg, #fff);
+  border-radius: 20px;
+  box-shadow: 0 4px 18px var(--box-shadow, rgba(0, 0, 0, 0.32));
+  padding: 0; /* Remove bottom padding on outer container */
+  min-width: 575px;
+  max-width: 90vw;
+  max-height: 88vh;
+  opacity: 0;
+  animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow: hidden; /* Hide overflow so scrollbars don't leak outside border-radius */
+  transition: opacity 0.2s;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popupIn {
+  to { transform: scale(1); opacity: 1; }
+}
+
+
+/* Close button at top-right corner */
+.completed-tasks-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  font-size: 1.9rem;
+  color: var(--text-muted, #a1a1b0);
+  background: none;
+  border: none;
+  z-index: 10;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: color 0.2s, opacity 0.2s;
+}
+.completed-tasks-close-btn:hover {
+  color: var(--text-color, #fff);
+  opacity: 1;
+}
+
+/* Inner todo-section styling adjustments to fit panel */
+.completed-tasks-floating-card .todo-section {
+  margin-bottom: 0;
+  border-radius: 20px;
+}
+
+/* Container wrapping tasks list and pagination */
+.todo-section-body-comp {
+  border-radius: 0 0 20px 20px;
+  overflow: hidden; /* This clips the pagination border visually within the container */
+  max-height: 70vh; /* or whatever you want for scroll limits */
+  transition: max-height 0.3s ease;
+  padding: 0 16px 16px 16px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+}
+/* Scrollable task list */
+.todo-section-content-comp {
+  flex: 1 1 auto;
+  min-height: 0;              /* lets flexbox allow shrinking */
+  overflow-y: auto;           /* only the task list area scrolls */
+  padding: 1rem 1.5rem;
+}
+
+/* Pagination styling container */
+.pagination {
+  margin: 0 0 6px 0;
+  padding-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  user-select: none;
+  background: transparent;
+  transition: max-height 0.3s ease;
+  /* Remove border-top to prevent border leakage */
+  border-top: none;
+}
+
+/* Pagination buttons */
+.pagination-btn {
+  padding: 10px 22px;
+  font-size: 1.2rem;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  color: var(--primary-color, #7c3aed);
+  background: transparent;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  opacity: 0.94;
+}
+
+/* Hover and focus for pagination buttons */
+.pagination-btn:hover:not(.active),
+.pagination-btn:focus-visible:not(.active) {
+  background: #edcf3a;
+  color: #23165a;
+  box-shadow: 0 2px 12px rgba(236, 207, 58, 0.14);
+}
+
+/* Active pagination button */
+.pagination-btn.active {
+  color: var(--text-color, #fff);
+  background: linear-gradient(90deg, var(--primary-color-light, #a78bfa) 30%, var(--primary-color, #7c3aed) 100%);
+  cursor: default;
+  font-weight: 800;
+  font-size: 1.24rem;
+  box-shadow: 0 2px 14px rgba(124, 58, 237, 0.13);
+  opacity: 1;
+}
+
+/* Responsive for very small screens */
+@media (max-width: 600px) {
+  .completed-tasks-floating-card {
+    min-width: 320px;         /* smaller minimum width */
+  }
+}

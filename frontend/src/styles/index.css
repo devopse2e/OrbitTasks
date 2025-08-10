@@ -1,24 +1,45 @@
+/* frontend/src/styles/index.css */
+
+/* Reset box model */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+/* Base dark theme variables */
+:root {
+  --bg-color: #111827;       /* dark background */
+  --text-color: #e5e7eb;     /* light text */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --background-gradient-start: #1f2937;
+  --background-gradient-end: #111827;
+}
+
+/* Light theme overrides */
+body.light {
+  --bg-color: #f9fafb;
+  --text-color: #1f2937;
+  --background-gradient-start: #e5e7eb;
+  --background-gradient-end: #f3f4f6;
+}
+
+/* Apply variables */
+body, html {
+  font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-#root {
+  
+  background: linear-gradient(135deg, var(--background-gradient-start) 0%, var(--background-gradient-end) 100%);
+  
+  color: var(--text-color);
+  
   min-height: 100vh;
+  background-attachment: fixed;
+}
+
+/* Monospace font for code */
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }

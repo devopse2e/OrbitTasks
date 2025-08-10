@@ -1,9 +1,11 @@
+// frontend/src/index.js
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-console.log('React starting...'); // Debug line
-console.log('Root element:', document.getElementById('root')); // Debug line
+// Import the global styles we just defined
+import './styles/index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -11,6 +13,3 @@ root.render(
     <App />
   </React.StrictMode>
 );
-
-console.log('React render called'); // Debug line
-
