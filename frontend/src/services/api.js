@@ -180,7 +180,7 @@ export const todoService = {
 
   parseTaskDetails: async (taskTitle) => {
     try {
-      const response = await api.post('/parse-task-details', { taskTitle });
+      const response = await api.post('/nlp/parse-task-details', { taskTitle });
       return response.data;
     } catch (error) {
       // If NLP fails, return null
