@@ -24,14 +24,18 @@ app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
+/*
 // Routes
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api', nlpRoutes);
-
-// Error handler
+*/
+// Routes
+app.use('/user', userRoutes);
+app.use('/auth', authRoutes);
+app.use('/todos', todoRoutes);
+app.use('/nlp', nlpRoutes); // Giving nlpRoutes a specific, non-conflicting path
 
 
 
@@ -52,13 +56,13 @@ app.get('/ready', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
-
+/*
 // API routes
 // FIX: Add the new authRoutes to the application's middleware stack
 app.use('/api', authRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api', nlpRoutes);
-
+*/
 // Root endpoint
 app.get('/', (req, res) => {
     res.json({
