@@ -56,11 +56,12 @@ export const AuthProvider = ({ children }) => {
 
   // ----- AUTH FUNCTIONS -----
   const register = useCallback(
-    async (email, password) => {
+    async (email, password, confirmPassword) => {
       setLoading(true);
       setError(null);
       try {
-        const newUser = await authService.register({ email, password });
+        const newUser = await authService.register({ email, password, confirmPassword });
+        console.log('REGISTER API returned:', newUser);
         setUser(newUser);
       } catch (err) {
         setError(err.message || 'Registration failed');

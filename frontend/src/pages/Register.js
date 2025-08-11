@@ -33,7 +33,7 @@ const Register = () => {
 
         try {
             // FIX: Call the actual register function from the context
-            await register(email, password);
+            await register(email, password, confirmPassword);
              // Navigation will be handled by the effect above
         } catch (err) {
             // The context will handle setting the authError
