@@ -53,7 +53,8 @@ module.exports = {
         changeOrigin: true, // Handle host header changes if needed
         secure: false // For local dev (ignore self-signed certs if any)
       }
-    ]
+    ],
+    allowedHosts: 'all'
   },
   resolve: {
     extensions: ['.js', '.jsx']
