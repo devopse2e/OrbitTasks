@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "webpack serve --mode development",
     "build": "webpack --mode production",
+    "start": "node server.js",
     "test": "jest --detectOpenHandles",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
