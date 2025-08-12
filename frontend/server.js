@@ -23,7 +23,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Frontend server running on http://localhost:${PORT}`);
-  console.log(`Proxying /api → ${BACKEND_URL}`);
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Frontend server running on http://${HOST}:${PORT}`);
+    console.log(`Proxying /api requests to ${BACKEND_URL}`);
 });
