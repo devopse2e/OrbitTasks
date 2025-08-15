@@ -89,7 +89,13 @@ process.on('SIGTERM', () => {
 // Connect to MongoDB and start server
 const startServer = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        const mongooseOptions = {
+            tls: true,
+            tlsCAFile: '/etc/ssl/certs/rds-combined-ca-bundle.pem', // The path to the downloaded CA certificate
+            useNewUrlParser: true, // Deprecated but often still needed for some setups
+            useUnifiedTopology: true // Deprecated but often still needed for some setups
+        };
+        await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
         console.log('✅ Connected to MongoDB');
         app.listen(PORT, () => {
             console.log(`🚀 Server is running on port ${PORT}`);
