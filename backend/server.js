@@ -89,12 +89,28 @@ process.on('SIGTERM', () => {
 // Connect to MongoDB and start server
 const startServer = async () => {
     try {
-        const mongooseOptions = {
-            tls: true,
-            tlsCAFile: '/etc/ssl/certs/rds-combined-ca-bundle.pem', // The path to the downloaded CA certificate
-            useNewUrlParser: true, // Deprecated but often still needed for some setups
-            useUnifiedTopology: true // Deprecated but often still needed for some setups
+        const mongoUri = process.env.MONGO_URI;
+
+        // --- FIX IS HERE: Conditional TLS Configuration ---
+
+        // Start with base options that are always good to have
+        let mongooseOptions = {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
         };
+
+        // Check if the connection string requires SSL/TLS
+        if (mongoUri.includes('ssl=true')) {
+            console.log('✅ SSL/TLS connection detected. Applying DocumentDB options.');
+            // If yes, merge in the specific TLS options for DocumentDB
+            mongooseOptions = {
+                ...mongooseOptions, // Keep the base options
+                tls: true,
+                tlsCAFile: '/etc/ssl/certs/rds-combined-ca-bundle.pem',
+            };
+        } else {
+            console.log('ℹ️ Standard MongoDB connection detected (no TLS).');
+        }
         await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
         console.log('✅ Connected to MongoDB');
         app.listen(PORT, () => {
