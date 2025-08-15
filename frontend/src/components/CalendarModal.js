@@ -5,13 +5,23 @@ import ReactDOM from 'react-dom';
 import { generateRecurringInstances } from '../utils/dateUtils'; // Import the utility
 import '../styles/CalendarModal.css';
 
-// --- DailyTasksModal and TaskDetailViewer components as you have them (changed color classes adjusted via CSS variables) ---
+// 🔹 DEBUG: Module load
+console.log('[CAL] CalendarModal module loaded');
+
+// --- DailyTasksModal Component ---
 function DailyTasksModal({ date, tasks, onClose, onTaskClick }) {
     return ReactDOM.createPortal(
         <div className="daily-tasks-backdrop" onClick={onClose}>
             <div className="daily-tasks-modal" onClick={e => e.stopPropagation()}>
                 <div className="daily-tasks-header">
-                    <h2>Tasks for {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</h2>
+                    <h2>
+                        Tasks for {date.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })}
+                    </h2>
                     <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
                 <div className="daily-tasks-list">
@@ -20,12 +30,20 @@ function DailyTasksModal({ date, tasks, onClose, onTaskClick }) {
                             <div key={task._id + (task.createdAt || task.dueDate)} className="task-detail-item">
                                 <div className="task-detail-title-wrapper">
                                     <div className="task-detail-title">{task.text}</div>
-                                    {task.priority && <span className={`task-detail-priority-pill priority-${task.priority}`}>{task.priority}</span>}
-                                    {task.category && <span className="task-detail-category-pill">{task.category}</span>}
+                                    {task.priority && (
+                                        <span className={`task-detail-priority-pill priority-${task.priority}`}>
+                                            {task.priority}
+                                        </span>
+                                    )}
+                                    {task.category && (
+                                        <span className="task-detail-category-pill">{task.category}</span>
+                                    )}
                                 </div>
                                 <div className="task-detail-notes-wrapper">
                                     {task.notes && <div className="task-detail-notes">{task.notes}</div>}
-                                    <button className="view-details-btn" onClick={() => onTaskClick(task)}>View Details</button>
+                                    <button className="view-details-btn" onClick={() => onTaskClick(task)}>
+                                        View Details
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -39,6 +57,7 @@ function DailyTasksModal({ date, tasks, onClose, onTaskClick }) {
     );
 }
 
+// --- TaskDetailViewer Component ---
 function TaskDetailViewer({ task, onClose }) {
     const popupRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
@@ -100,7 +119,11 @@ function TaskDetailViewer({ task, onClose }) {
     );
 }
 
+// --- CalendarModal Component ---
 function CalendarModal({ tasks, onClose }) {
+    // 🔹 DEBUG: When the component mounts
+    console.log('[CAL] CalendarModal mounted');
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDayTasks, setSelectedDayTasks] = useState(null);
     const [taskViewerOpen, setTaskViewerOpen] = useState(false);
@@ -119,8 +142,32 @@ function CalendarModal({ tasks, onClose }) {
         daysArray.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), i));
     }
 
+    // 🔹 DEBUG: Log tasks received by modal
+    console.log('[CAL] tasks prop:', tasks?.map(t => ({
+        text: t.text,
+        isRecurring: t.isRecurring,
+        recurrencePattern: t.recurrencePattern,
+        recurrenceInterval: t.recurrenceInterval,
+        dueDate: t.dueDate
+    })));
+
     const expandedTasks = React.useMemo(() => {
-        return tasks.flatMap(task => generateRecurringInstances(task, startOfMonth, endOfMonth));
+        console.log('[CAL] Expanding tasks for range:', startOfMonth, '→', endOfMonth);
+        console.log('[CAL] tasks before expansion:', tasks?.map(t => ({
+            text: t.text,
+            isRecurring: t.isRecurring,
+            recurrencePattern: t.recurrencePattern,
+            recurrenceInterval: t.recurrenceInterval
+          })));
+        return tasks.flatMap(task => {
+            console.log('[CAL] Calling generateRecurringInstances for:', {
+                text: task.text,
+                isRecurring: task.isRecurring,
+                recurrencePattern: task.recurrencePattern,
+                recurrenceInterval: task.recurrenceInterval
+            });
+            return generateRecurringInstances(task, startOfMonth, endOfMonth);
+        });
     }, [tasks, startOfMonth, endOfMonth]);
 
     const tasksForDay = useCallback((day) => {
@@ -203,7 +250,9 @@ function CalendarModal({ tasks, onClose }) {
                                         <div key={task._id + (task.createdAt || task.dueDate)} className="task-item">
                                             <div className="task-title">{task.text}</div>
                                             {task.dueDate && (
-                                                <div className="task-date due">Due: {new Date(task.dueDate).toLocaleDateString()}</div>
+                                                <div className="task-date due">
+                                                    Due: {new Date(task.dueDate).toLocaleDateString()}
+                                                </div>
                                             )}
                                         </div>
                                     ))}

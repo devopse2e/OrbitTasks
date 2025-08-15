@@ -91,6 +91,14 @@ export const formatDueDate = (dateString) => {
 
 // Generate occurrences of a recurring todo within given visible date range
 export function generateRecurringInstances(todo, rangeStart, rangeEnd) {
+    console.log('[generateRecurringInstances] Incoming task:', {
+  text: todo.text,
+  dueDate: todo.dueDate,
+  recurrencePattern: todo.recurrencePattern,
+  recurrenceInterval: todo.recurrenceInterval,
+  recurrenceEndsAt: todo.recurrenceEndsAt,
+  isRecurring: todo.isRecurring
+});
   if (!todo.isRecurring || !todo.dueDate) return [todo]; // Not recurring or no initial due date
 
   const instances = [];

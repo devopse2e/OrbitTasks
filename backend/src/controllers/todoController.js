@@ -43,6 +43,9 @@ const createTodo = async (req, res, next) => {
   try {
     const { text, notes, dueDate, priority, category, color, isRecurring, recurrencePattern, recurrenceEndsAt, recurrenceInterval, recurrenceCustomRule } = req.body;
 
+   // Auto-detect recurring tasks based on flag OR pattern
+    const recurringFlag = Boolean(isRecurring) || (recurrencePattern && recurrencePattern !== 'none');
+
     const todoData = {
       userId: req.user.id,
       text,
@@ -51,16 +54,17 @@ const createTodo = async (req, res, next) => {
       priority: priority || 'Medium',
       category: category || 'Personal',
       color: color || '#FFFFFF',
-      isRecurring: Boolean(isRecurring),
-      recurrencePattern: isRecurring ? (recurrencePattern || 'none') : 'none',
+      isRecurring: recurringFlag,
+      recurrencePattern: recurringFlag ? recurrencePattern || 'none' : 'none',
       recurrenceEndsAt: recurrenceEndsAt || null,
-      recurrenceInterval: recurrenceInterval ? Math.max(1, parseInt(recurrenceInterval)) : 1,
+      recurrenceInterval: Math.max(1, parseInt(recurrenceInterval) || 1),
       recurrenceCustomRule: recurrenceCustomRule || '',
       originalTaskId: null,
       nextDueDate: null,
       completed: false,
       completedAt: null
     };
+
 
     if (todoData.isRecurring && dueDate) {
       todoData.nextDueDate = calculateNextDueDate(new Date(dueDate), todoData.recurrencePattern, todoData.recurrenceInterval);
@@ -87,7 +91,9 @@ const updateTodo = async (req, res, next) => {
     if (category !== undefined) updates.category = category;
     if (color !== undefined) updates.color = color;
     if (dueDate !== undefined) updates.dueDate = dueDate;
-    if (isRecurring !== undefined) updates.isRecurring = isRecurring;
+    if (isRecurring !== undefined || (recurrencePattern && recurrencePattern !== 'none')) {
+      updates.isRecurring = Boolean(isRecurring) || (recurrencePattern && recurrencePattern !== 'none');
+    }
     if (recurrencePattern !== undefined) updates.recurrencePattern = recurrencePattern;
     if (recurrenceEndsAt !== undefined) updates.recurrenceEndsAt = recurrenceEndsAt;
     if (recurrenceInterval !== undefined) updates.recurrenceInterval = Math.max(1, parseInt(recurrenceInterval));

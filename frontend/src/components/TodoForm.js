@@ -28,6 +28,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
   const [nlpSuggestedCleanedTitle, setNlpSuggestedCleanedTitle] = useState('');
   const [nlpSuggestedRecurrencePattern, setNlpSuggestedRecurrencePattern] = useState(null);
   const [nlpSuggestedRecurrenceEndsAt, setNlpSuggestedRecurrenceEndsAt] = useState(null);
+  const [nlpSuggestedRecurrenceInterval, setNlpSuggestedRecurrenceInterval] = useState(1);
   const [showNlpSuggestion, setShowNlpSuggestion] = useState(false);
 
   // NLP apply suppression flag
@@ -95,6 +96,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
             setNlpSuggestedPriority(result.priority);
             setNlpSuggestedCleanedTitle(result.cleanedTitle);
             setNlpSuggestedRecurrencePattern(result.recurrencePattern && result.recurrencePattern !== 'none' ? result.recurrencePattern : null);
+            setNlpSuggestedRecurrenceInterval(result.recurrenceInterval || 1);
             setNlpSuggestedRecurrenceEndsAt(result.recurrenceEndsAt ? new Date(result.recurrenceEndsAt) : null);
             setShowNlpSuggestion(!!(result.dueDate || result.priority || (result.recurrencePattern && result.recurrencePattern !== 'none')));
           } else {
@@ -244,8 +246,14 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
       isRecurring,
       recurrencePattern: isRecurring ? recurrencePattern : 'none',
       recurrenceEndsAt: isRecurring && recurrenceEndsAt ? new Date(recurrenceEndsAt).toISOString() : null,
+      recurrenceInterval: isRecurring
+        ? (nlpSuggestedRecurrencePattern && nlpSuggestedRecurrencePattern !== 'none' && nlpSuggestedRecurrenceInterval
+            ? nlpSuggestedRecurrenceInterval   // from NLP if available
+            : 1) // default
+        : 1,
       recurrenceCustomRule: '',
     };
+    
 
     try {
       if (isEditMode) await editTodo(todoToEdit._id, payload);
@@ -278,6 +286,10 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
     if (nlpSuggestedRecurrenceEndsAt) {
       setRecurrenceEndsAt(nlpSuggestedRecurrenceEndsAt.toISOString().split('T')[0]);
     }
+    if (nlpSuggestedRecurrenceInterval) {
+      setNlpSuggestedRecurrenceInterval(nlpSuggestedRecurrenceInterval);
+    }
+    
 
     setShowNlpSuggestion(false);
     setNlpAppliedManually(true); // Suppress NLP suggestions until user edits text again
@@ -313,8 +325,14 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
                     {nlpSuggestedDueDate && <strong> Due: {nlpSuggestedDueDate.toLocaleString()} </strong>}
                     {nlpSuggestedPriority && <strong> Priority: {nlpSuggestedPriority} </strong>}
                     {nlpSuggestedRecurrencePattern && (
-                      <strong> Recurs: {nlpSuggestedRecurrencePattern.charAt(0).toUpperCase() + nlpSuggestedRecurrencePattern.slice(1)}</strong>
-                    )}
+                    <strong>
+                      Recurs: {nlpSuggestedRecurrencePattern.charAt(0).toUpperCase() + 
+                              nlpSuggestedRecurrencePattern.slice(1)}
+                      {nlpSuggestedRecurrenceInterval && nlpSuggestedRecurrenceInterval > 1
+                        ? ` (every ${nlpSuggestedRecurrenceInterval})`
+                        : ''}
+                    </strong>
+                  )}
                   </span>
                   <button type="button" onClick={applyNlpSuggestions} className="apply-suggestion-btn">Apply</button>
                 </div>
