@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { todoService } from '../services/api';
+import { parseISO } from 'date-fns';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import '../styles/TodoForm.css';
 
-function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAddModal, closeEditModal, todoToEdit, loading }) {
+function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAddModal, closeEditModal, todoToEdit, loading, userTimeZone }) {
   const [modalAnim, setModalAnim] = useState(false);
 
   // Form fields
@@ -90,14 +92,20 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
     const fetchNlpSuggestions = async () => {
       if (debouncedTaskText.trim().length > 3) {
         try {
-          const result = await todoService.parseTaskDetails(debouncedTaskText);
+          const result = await todoService.parseTaskDetails({
+            taskTitle: debouncedTaskText,
+            timeZone: userTimeZone
+          });
           if (result) {
-            setNlpSuggestedDueDate(result.dueDate ? new Date(result.dueDate) : null);
+            // Zone NLP results to user's timezone
+            const zonedDueDate = result.dueDate ? toZonedTime(parseISO(result.dueDate), userTimeZone) : null;
+            const zonedEndsAt = result.recurrenceEndsAt ? toZonedTime(parseISO(result.recurrenceEndsAt), userTimeZone) : null;
+            setNlpSuggestedDueDate(zonedDueDate);
             setNlpSuggestedPriority(result.priority);
             setNlpSuggestedCleanedTitle(result.cleanedTitle);
             setNlpSuggestedRecurrencePattern(result.recurrencePattern && result.recurrencePattern !== 'none' ? result.recurrencePattern : null);
             setNlpSuggestedRecurrenceInterval(result.recurrenceInterval || 1);
-            setNlpSuggestedRecurrenceEndsAt(result.recurrenceEndsAt ? new Date(result.recurrenceEndsAt) : null);
+            setNlpSuggestedRecurrenceEndsAt(zonedEndsAt);
             setShowNlpSuggestion(!!(result.dueDate || result.priority || (result.recurrencePattern && result.recurrencePattern !== 'none')));
           } else {
             setShowNlpSuggestion(false);
@@ -111,7 +119,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
     };
 
     fetchNlpSuggestions();
-  }, [debouncedTaskText, nlpAppliedManually]);
+  }, [debouncedTaskText, nlpAppliedManually, userTimeZone]);
 
   // --- Populate form when modal opens and when editing ---
   useEffect(() => {
@@ -133,11 +141,10 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
         );
 
         if (todoToEdit.recurrenceEndsAt) {
-          const recEndDate = todoToEdit.recurrenceEndsAt instanceof Date
-            ? todoToEdit.recurrenceEndsAt
-            : new Date(todoToEdit.recurrenceEndsAt);
-          if (!isNaN(recEndDate.getTime())) {
-            setRecurrenceEndsAt(recEndDate.toISOString().split('T')[0]);
+          const utcRecEnd = parseISO(todoToEdit.recurrenceEndsAt);
+          if (!isNaN(utcRecEnd.getTime())) {
+            const zonedRecEnd = toZonedTime(utcRecEnd, userTimeZone);
+            setRecurrenceEndsAt(formatInTimeZone(zonedRecEnd, userTimeZone, 'yyyy-MM-dd'));
           } else {
             setRecurrenceEndsAt('');
           }
@@ -146,31 +153,39 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
         }
 
         if (todoToEdit.dueDate) {
-            const d = todoToEdit.dueDate instanceof Date ? todoToEdit.dueDate : new Date(todoToEdit.dueDate);
-            if (!isNaN(d.getTime())) {
-              const localYear = d.getFullYear();
-              const localMonth = (d.getMonth() + 1).toString().padStart(2, '0');
-              const localDate = d.getDate().toString().padStart(2, '0');
-              setDueDate(`${localYear}-${localMonth}-${localDate}`);
-          
-              const hours = d.getHours().toString().padStart(2, '0');
-              const minutes = d.getMinutes().toString().padStart(2, '0');
-              setDueTime(`${hours}:${minutes}`);
-            } else {
-              setDueDate('');
-              setDueTime('');
-            }
+          const utcD = parseISO(todoToEdit.dueDate);
+          if (!isNaN(utcD.getTime())) {
+            const zonedD = toZonedTime(utcD, userTimeZone);
+            setDueDate(formatInTimeZone(zonedD, userTimeZone, 'yyyy-MM-dd'));
+            setDueTime(formatInTimeZone(zonedD, userTimeZone, 'HH:mm'));
           } else {
             setDueDate('');
             setDueTime('');
           }
+        } else {
+          setDueDate('');
+          setDueTime('');
+        }
       } else {
         resetForm();
       }
     } else {
       setModalAnim(false);
     }
-  }, [isModalOpen, todoToEdit, isEditMode]);
+  }, [isModalOpen, todoToEdit, isEditMode, userTimeZone]);
+
+  // Listen for timezone changes to re-populate form if editing
+  useEffect(() => {
+    const handleTzChange = () => {
+      // If modal open and editing, re-populate with new timezone
+      if (isModalOpen && isEditMode && todoToEdit) {
+        // Trigger re-population by resetting and re-setting (useEffect will handle)
+        resetForm();
+      }
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
+  }, [isModalOpen, isEditMode, todoToEdit, userTimeZone]);
 
   // --- Handle form changes ---
   // User typing resets the NLP suppression flag
@@ -231,21 +246,34 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
 
     let finalDueDateTime = null;
     if (dueDate) {
+      // Parse as zoned time in userTimeZone, then convert to UTC ISO
       const dateTimeString = dueTime ? `${dueDate}T${dueTime}:00` : `${dueDate}T00:00:00`;
-      finalDueDateTime = new Date(dateTimeString);
-      if (isNaN(finalDueDateTime.getTime())) finalDueDateTime = null;
+      const parsedLocal = parseISO(dateTimeString);
+      if (!isNaN(parsedLocal.getTime())) {
+        finalDueDateTime = fromZonedTime(parsedLocal, userTimeZone).toISOString();
+      }
+    }
+
+    let finalRecurrenceEndsAt = null;
+    if (isRecurring && recurrenceEndsAt) {
+      // Parse as end of day in userTimeZone, then to UTC ISO
+      const endsAtString = `${recurrenceEndsAt}T23:59:59`;
+      const parsedEndsLocal = parseISO(endsAtString);
+      if (!isNaN(parsedEndsLocal.getTime())) {
+        finalRecurrenceEndsAt = fromZonedTime(parsedEndsLocal, userTimeZone).toISOString();
+      }
     }
 
     const payload = {
       text: text.trim(),
       notes: notes.trim(),
       priority,
-      dueDate: finalDueDateTime ? finalDueDateTime.toISOString() : null,
+      dueDate: finalDueDateTime,
       category,
       color,
       isRecurring,
       recurrencePattern: isRecurring ? recurrencePattern : 'none',
-      recurrenceEndsAt: isRecurring && recurrenceEndsAt ? new Date(recurrenceEndsAt).toISOString() : null,
+      recurrenceEndsAt: finalRecurrenceEndsAt,
       recurrenceInterval: isRecurring
         ? (nlpSuggestedRecurrencePattern && nlpSuggestedRecurrencePattern !== 'none' && nlpSuggestedRecurrenceInterval
             ? nlpSuggestedRecurrenceInterval   // from NLP if available
@@ -253,7 +281,6 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
         : 1,
       recurrenceCustomRule: '',
     };
-    
 
     try {
       if (isEditMode) await editTodo(todoToEdit._id, payload);
@@ -268,36 +295,23 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
   const applyNlpSuggestions = () => {
     if (nlpSuggestedCleanedTitle) setText(nlpSuggestedCleanedTitle);
     if (nlpSuggestedDueDate) {
-        const d = nlpSuggestedDueDate;
-        const localYear = d.getFullYear();
-        const localMonth = (d.getMonth() + 1).toString().padStart(2, '0');
-        const localDate = d.getDate().toString().padStart(2, '0');
-        setDueDate(`${localYear}-${localMonth}-${localDate}`);
-      
-        const hours = d.getHours().toString().padStart(2, '0');
-        const minutes = d.getMinutes().toString().padStart(2, '0');
-        setDueTime(`${hours}:${minutes}`);
-      }
+      setDueDate(formatInTimeZone(nlpSuggestedDueDate, userTimeZone, 'yyyy-MM-dd'));
+      setDueTime(formatInTimeZone(nlpSuggestedDueDate, userTimeZone, 'HH:mm'));
+    }
     if (nlpSuggestedPriority) setPriority(nlpSuggestedPriority);
     if (nlpSuggestedRecurrencePattern) {
       setIsRecurring(true);
       setRecurrencePattern(nlpSuggestedRecurrencePattern);
     }
     if (nlpSuggestedRecurrenceEndsAt) {
-      setRecurrenceEndsAt(nlpSuggestedRecurrenceEndsAt.toISOString().split('T')[0]);
+      setRecurrenceEndsAt(formatInTimeZone(nlpSuggestedRecurrenceEndsAt, userTimeZone, 'yyyy-MM-dd'));
     }
     if (nlpSuggestedRecurrenceInterval) {
       setNlpSuggestedRecurrenceInterval(nlpSuggestedRecurrenceInterval);
     }
-    
 
     setShowNlpSuggestion(false);
     setNlpAppliedManually(true); // Suppress NLP suggestions until user edits text again
-  };
-
-  const handleManualInputChange = (setter, value) => {
-    setter(value);
-    setShowNlpSuggestion(false);
   };
 
   return (
@@ -322,7 +336,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
                 <div className="nlp-suggestion-box">
                   <span>
                     Detected:
-                    {nlpSuggestedDueDate && <strong> Due: {nlpSuggestedDueDate.toLocaleString()} </strong>}
+                    {nlpSuggestedDueDate && <strong> Due: {formatInTimeZone(nlpSuggestedDueDate, userTimeZone, 'PPP p')} </strong>}
                     {nlpSuggestedPriority && <strong> Priority: {nlpSuggestedPriority} </strong>}
                     {nlpSuggestedRecurrencePattern && (
                     <strong>
@@ -349,11 +363,11 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
               <div className="due-date-group">
                 <div className="input-group">
                   <label>Due Date:</label>
-                  <input type="date" value={dueDate} onChange={e => handleManualInputChange(setDueDate, e.target.value)} className="form-input" disabled={loading} />
+                  <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="form-input" disabled={loading} />
                 </div>
                 <div className="input-group">
                   <label>Time:</label>
-                  <input type="time" value={dueTime} onChange={e => handleManualInputChange(setDueTime, e.target.value)} className="form-input" disabled={loading} />
+                  <input type="time" value={dueTime} onChange={e => setDueTime(e.target.value)} className="form-input" disabled={loading} />
                 </div>
               </div>
 
@@ -365,7 +379,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
                       type="button"
                       key={p}
                       className={`priority-btn priority-${p.toLowerCase()} ${priority === p ? 'selected' : ''}`}
-                      onClick={() => handleManualInputChange(setPriority, p)}
+                      onClick={() => setPriority(p)}
                       disabled={loading}
                     >
                       {p}
@@ -376,7 +390,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
 
               <div className="input-group">
                 <label>Category:</label>
-                <select value={category} onChange={e => handleManualInputChange(setCategory, e.target.value)} className="form-select" disabled={loading}>
+                <select value={category} onChange={e => setCategory(e.target.value)} className="form-select" disabled={loading}>
                   {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
@@ -389,7 +403,7 @@ function TodoForm({ addTodo, editTodo, isAddModalOpen, isEditModalOpen, closeAdd
                       key={c}
                       className={`color-swatch ${color === c ? 'selected' : ''}`}
                       style={{ backgroundColor: c }}
-                      onClick={() => handleManualInputChange(setColor, c)}
+                      onClick={() => setColor(c)}
                       title={c}
                     ></div>
                   ))}

@@ -1,10 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTodosContext } from '../context/TodosContext';
+import { useAuthContext } from '../context/AuthContext';
 import TodoForm from './TodoForm';
 import TodoItem from './TodoItem';
 import LoadingSpinner from './LoadingSpinner';
 import CalendarModal from './CalendarModal';
+import { toZonedTime } from 'date-fns-tz';
 import '../styles/TodoList.css';
+
+
 
 const SearchIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -25,6 +29,8 @@ const CalendarIcon = () => (
   </svg>
 );
 
+
+
 function TodoList() {
   const { 
     todos, 
@@ -38,13 +44,24 @@ function TodoList() {
     fetchTodos 
   } = useTodosContext();
 
+
+
+  const { user } = useAuthContext(); 
+  const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC'; 
+
+
+
   // Collapsed state
   const [isActiveCollapsed, setIsActiveCollapsed] = useState(false);
+
+
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState(null);
+
+
 
   // Filtering & sorting
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,14 +72,20 @@ function TodoList() {
   const [activePriority, setActivePriority] = useState(null);
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
+
+
   // Refs
   const sortMenuRef = useRef(null);
   const searchInputRef = useRef(null);
   const activeBodyRef = useRef(null);
 
+
+
   // Pagination for active tasks
   const TASKS_PER_PAGE = 4;
   const [activeCurrentPage, setActiveCurrentPage] = useState(1);
+
+
 
   // Modal handlers
   const handleOpenAddModal = () => setIsAddModalOpen(true);
@@ -76,6 +99,8 @@ function TodoList() {
     setTimeout(() => setEditingTodo(null), 350);
   };
 
+
+
   // Close sort menu on outside click
   const closeSortMenu = useCallback(() => setIsSortMenuOpen(false), []);
   useEffect(() => {
@@ -88,6 +113,8 @@ function TodoList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [closeSortMenu]);
 
+
+
   // Focus the search input when visible
   useEffect(() => {
     if (isSearchVisible) {
@@ -95,8 +122,23 @@ function TodoList() {
     }
   }, [isSearchVisible]);
 
+
+
+  // Listen for timezone changes to refetch
+  useEffect(() => {
+    const handleTzChange = () => {
+      fetchTodos();
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
+  }, [fetchTodos]);
+
+
+
   // Priority rank for sorting
   const priorityRank = { High: 1, Medium: 2, Low: 3 };
+
+
 
   // Filtering and sorting todos
   const filteredAndSortedTodos = useMemo(() => {
@@ -118,7 +160,9 @@ function TodoList() {
         case 'dueDate':
           if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
-          return new Date(a.dueDate) - new Date(b.dueDate);
+          const zonedA = toZonedTime(new Date(a.dueDate), userTimeZone);
+          const zonedB = toZonedTime(new Date(b.dueDate), userTimeZone);
+          return zonedA - zonedB;
         case 'createdAt':
           return new Date(b.createdAt) - new Date(a.createdAt);
         case 'priority':
@@ -129,10 +173,14 @@ function TodoList() {
           return new Date(b.createdAt) - new Date(a.createdAt);
       }
     });
-  }, [todos, searchTerm, sortBy, activeCategory, activePriority]);
+  }, [todos, searchTerm, sortBy, activeCategory, activePriority, userTimeZone]);
+
+
 
   // Separate active todos
   const activeTodos = filteredAndSortedTodos.filter(todo => !todo.completed);
+
+
 
   // Pagination logic
   const activeTotalPages = Math.ceil(activeTodos.length / TASKS_PER_PAGE) || 1;
@@ -140,6 +188,8 @@ function TodoList() {
     (activeCurrentPage - 1) * TASKS_PER_PAGE,
     activeCurrentPage * TASKS_PER_PAGE
   );
+
+
 
   // Reset page if it goes out of range — auto-back to highest valid page
   useEffect(() => {
@@ -150,6 +200,8 @@ function TodoList() {
       setActiveCurrentPage(1);
     }
   }, [activeTodos.length, activeCurrentPage, activeTotalPages]);
+
+
 
   // Fix: Expand/collapse animation after deletes or page changes
   useEffect(() => {
@@ -172,6 +224,8 @@ function TodoList() {
     activePriority
   ]);
 
+
+
   // Optimistic toggle with immediate UI update before backend sync
   const toggleTodo = async (id, newCompletedValue) => {
     try {
@@ -189,14 +243,20 @@ function TodoList() {
     }
   };
 
+
+
   if (loading && todos.length === 0) return <div className="center-container"><LoadingSpinner /></div>;
   if (error) return <div className="center-container error-state">Error: {error.message}</div>;
+
+
 
   return (
     <div className="todo-list-main">
       {/* Header & controls */}
       <div className="app-controls-header">
         <button className="add-todo-btn" onClick={handleOpenAddModal}>Add New Task</button>
+
+
 
         <div className="header-right-controls">
           <div className={`search-container ${isSearchVisible ? 'active' : ''}`}>
@@ -237,6 +297,8 @@ function TodoList() {
         </div>
       </div>
 
+
+
       {/* Todo Form Modal */}
       <TodoForm
         addTodo={addTodo}
@@ -247,7 +309,10 @@ function TodoList() {
         closeEditModal={handleCloseEditModal}
         todoToEdit={editingTodo}
         loading={loading}
+        userTimeZone={userTimeZone}
       />
+
+
 
       {/* Active Filters Pills */}
       {(activeCategory || activePriority) && (
@@ -267,6 +332,8 @@ function TodoList() {
         </div>
       )}
 
+
+
       {/* Active Tasks Section */}
       <div className={`todo-section ${isActiveCollapsed ? 'collapsed' : ''}`}>
         <div
@@ -278,6 +345,8 @@ function TodoList() {
             <span className={`chevron ${isActiveCollapsed ? 'up' : 'down'}`}></span>
           </span>
         </div>
+
+
 
         <div ref={activeBodyRef} className="todo-section-body">
           <div className="todo-section-content">
@@ -299,6 +368,8 @@ function TodoList() {
               </div>
             )}
           </div>
+
+
 
           {/* Pagination for active tasks */}
           {activeTotalPages > 1 && (
@@ -344,6 +415,8 @@ function TodoList() {
         </div>
       </div>
 
+
+
       {/* Calendar Modal */}
       {isCalendarModalOpen && (
         <CalendarModal tasks={todos} onClose={() => setIsCalendarModalOpen(false)} />
@@ -351,5 +424,7 @@ function TodoList() {
     </div>
   );
 }
+
+
 
 export default TodoList;

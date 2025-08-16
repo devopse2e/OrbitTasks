@@ -8,10 +8,12 @@ const CompletedTasksSection = ({
   deleteTodo,
   setCategoryFilter,
   setPriorityFilter,
+  userTimeZone, // NEW: Add userTimeZone prop
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const bodyRef = useRef(null);
 
+  // Pagination for completed tasks
   const TASKS_PER_PAGE = 4;
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -40,6 +42,15 @@ const CompletedTasksSection = ({
     }
   }, [completedTodos.length, currentPage, totalPages]);
 
+  // Listen for timezone changes to refresh (re-format dates)
+  useEffect(() => {
+    const handleTzChange = () => {
+      // No need to refetch, but force re-render if needed (dates will re-format via props)
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
+  }, []);
+
   const handlePageChange = (pageNumber) => {
     if (pageNumber !== currentPage) {
       setCurrentPage(pageNumber);
@@ -49,30 +60,29 @@ const CompletedTasksSection = ({
   return (
     <div className={`todo-section ${isCollapsed ? 'collapsed' : ''}`}>
       <div 
-      className="todo-section-header">
-      <span>
-        Completed ({completedTodos.length})
-        <span
-          className={`chevron ${isCollapsed ? 'up' : 'down'}`}
-          style={{ marginLeft: 8, cursor: 'pointer' }}
-          aria-hidden="true"
-          role="button"
-          tabIndex={0}
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsCollapsed(!isCollapsed);
-            }
-          }}
-          aria-label={isCollapsed ? 'Expand completed tasks' : 'Collapse completed tasks'}
-          aria-expanded={!isCollapsed}
-          aria-controls="completed-tasks-list"
-        />
-      </span>
-    </div>
-
-
+        className="todo-section-header"
+      >
+        <span>
+          Completed ({completedTodos.length})
+          <span
+            className={`chevron ${isCollapsed ? 'up' : 'down'}`}
+            style={{ marginLeft: 8, cursor: 'pointer' }}
+            aria-hidden="true"
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsCollapsed(!isCollapsed);
+              }
+            }}
+            aria-label={isCollapsed ? 'Expand completed tasks' : 'Collapse completed tasks'}
+            aria-expanded={!isCollapsed}
+            aria-controls="completed-tasks-list"
+          />
+        </span>
+      </div>
 
       <div ref={bodyRef} className="todo-section-body-comp" id="completed-tasks-list" >
         <div className="todo-section-content-comp">
@@ -85,6 +95,7 @@ const CompletedTasksSection = ({
                 deleteTodo={deleteTodo}
                 setCategoryFilter={setCategoryFilter}
                 setPriorityFilter={setPriorityFilter}
+                userTimeZone={userTimeZone} // NEW: Pass userTimeZone to TodoItem
               />
             ))
           ) : (

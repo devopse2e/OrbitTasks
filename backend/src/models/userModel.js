@@ -22,11 +22,27 @@ const userSchema = new mongoose.Schema({
     displayName: {
         type: String,
         trim: true,
-        default: '' // You can change default to any string if you want
+        default: ''
     },
     dob: {
         type: Date,
         default: null
+    },
+    timezone: { // <-- Updated field with validation
+        type: String,
+        default: 'UTC', // Default to Coordinated Universal Time
+        validate: {
+            validator: function (value) {
+                try {
+                    // Validate as a valid IANA timezone
+                    new Intl.DateTimeFormat('en-US', { timeZone: value });
+                    return true;
+                } catch {
+                    return false;
+                }
+            },
+            message: 'Invalid timezone format. Must be a valid IANA timezone (e.g., "Asia/Kolkata").'
+        }
     },
     createdAt: {
         type: Date,

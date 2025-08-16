@@ -1,8 +1,11 @@
-// frontend/src/components/TodoItem.js
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
+import { useAuthContext } from '../context/AuthContext'; 
 import { formatDueDate, formatCreatedAt } from '../utils/dateUtils';
+import { formatInTimeZone } from 'date-fns-tz';
 import '../styles/TodoItem.css';
+
+
 
 // --- HELPER FUNCTIONS ---
 function getContrastingTextColor(hexcolor) {
@@ -15,19 +18,20 @@ function getContrastingTextColor(hexcolor) {
   return yiq >= 128 ? '#3839b0' : '#FFFFFF';
 }
 
+
+
 const CATEGORY_COLORS = {
   Personal: '#3b82f6', Work: '#8b5cf6', Home: '#14b8a6', Health: '#ec4899',
   Finance: '#eab308', Shopping: '#d946ef', Groceries: '#f97316',
   Sports: '#ef4444', Activity: '#22c55e', Others: '#6b7280',
 };
 
-const formatFullDateTime = (date) => {
+
+const formatFullDateTime = (date, timeZone) => {
   if (!date) return 'Not set';
-  return new Date(date).toLocaleString(undefined, {
-    weekday: 'long', year: 'numeric', month: 'long',
-    day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
+  return formatInTimeZone(date, timeZone, 'EEEE, MMMM d, yyyy h:mm:ss a');
 };
+
 
 const AlarmClockIcon = ({ color }) => (
   <svg xmlns="http://www.w3.org/2000/svg"
@@ -39,9 +43,13 @@ const AlarmClockIcon = ({ color }) => (
   </svg>
 );
 
+
+
 function Tooltip({ targetRef, isVisible, content }) {
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const tooltipRef = React.useRef(null);
+
+
 
   const updatePosition = useCallback(() => {
     if (targetRef.current && tooltipRef.current) {
@@ -54,6 +62,8 @@ function Tooltip({ targetRef, isVisible, content }) {
     }
   }, [targetRef]);
 
+
+
   useEffect(() => {
     if (isVisible) {
       updatePosition();
@@ -66,7 +76,11 @@ function Tooltip({ targetRef, isVisible, content }) {
     };
   }, [isVisible, updatePosition]);
 
+
+
   if (!isVisible) return null;
+
+
 
   return ReactDOM.createPortal(
     <div ref={tooltipRef} className="date-tooltip visible"
@@ -77,14 +91,20 @@ function Tooltip({ targetRef, isVisible, content }) {
   );
 }
 
-function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEndsAt, onClose }) {
+
+
+function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEndsAt, onClose, timeZone }) {
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const popupRef = useRef(null);
+
+
 
   const updatePosition = useCallback(() => {
     if (targetRef.current && popupRef.current) {
       const targetRect = targetRef.current.getBoundingClientRect();
       const popupRect = popupRef.current.getBoundingClientRect();
+
+
 
       setPosition({
         top: targetRect.bottom + 8,
@@ -92,6 +112,8 @@ function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEn
       });
     }
   }, [targetRef]);
+
+
 
   useEffect(() => {
     if (isVisible) {
@@ -104,6 +126,8 @@ function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEn
       window.removeEventListener('resize', updatePosition);
     };
   }, [isVisible, updatePosition]);
+
+
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -122,14 +146,18 @@ function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEn
     };
   }, [isVisible, onClose, targetRef]);
 
+
+
   if (!isVisible) return null;
+
+
 
   return ReactDOM.createPortal(
     <div className="recurrence-popup" ref={popupRef}
       style={{ top: position.top, left: position.left }}>
       <div><strong>Recurs:</strong> {recurrencePattern.charAt(0).toUpperCase() + recurrencePattern.slice(1)}</div>
       {recurrenceEndsAt ? (
-        <div><strong>Ends On:</strong> {new Date(recurrenceEndsAt).toLocaleDateString()}</div>
+        <div><strong>Ends On:</strong> {formatInTimeZone(new Date(recurrenceEndsAt), timeZone, 'PPP')}</div>
       ) : (
         <div><em>Does not end</em></div>
       )}
@@ -138,24 +166,50 @@ function RecurrencePopup({ targetRef, isVisible, recurrencePattern, recurrenceEn
   );
 }
 
+
+
 function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, setPriorityFilter }) {
+  const { user } = useAuthContext(); // <-- 3. Get the user from context
+  const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC'; // <-- 4. Get the timezone, with fallback
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPopupVisible, setIsPopupVisible] = useState(false);
 
+
+
   const [recurrencePopupVisible, setRecurrencePopupVisible] = useState(false);
   const recurrencePillRef = useRef(null);
+
+
 
   const [createdTooltipVisible, setCreatedTooltipVisible] = useState(false);
   const [dueTooltipVisible, setDueTooltipVisible] = useState(false);
   const createdDateRef = useRef(null);
   const dueDateRef = useRef(null);
 
+
+
   const menuButtonRef = useRef(null);
   const menuRef = useRef(null);
   const popupTimeoutRef = useRef(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+
+
+
+  // Force re-render on timezone change
+  const [refreshKey, setRefreshKey] = useState(0);
+
+
+  useEffect(() => {
+    const handleTzChange = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
+  }, []);
+
+
 
   const closeMenu = useCallback(() => {
     if (!isMenuOpen || isMenuClosing) return;
@@ -165,6 +219,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
       setIsMenuClosing(false);
     }, 150);
   }, [isMenuOpen, isMenuClosing]);
+
+
 
   const updateMenuPosition = useCallback(() => {
     if (menuButtonRef.current) {
@@ -176,6 +232,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
       });
     }
   }, []);
+
+
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -189,11 +247,15 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
     }
     document.addEventListener('mousedown', handleClickOutside);
 
+
+
     if (isMenuOpen) {
       updateMenuPosition();
       window.addEventListener('scroll', updateMenuPosition);
       window.addEventListener('resize', updateMenuPosition);
     }
+
+
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -201,6 +263,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
       window.removeEventListener('resize', updateMenuPosition);
     };
   }, [isMenuOpen, closeMenu, updateMenuPosition]);
+
+
 
   useEffect(() => {
     if (isPopupOpen) {
@@ -212,6 +276,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
     return () => clearTimeout(popupTimeoutRef.current);
   }, [isPopupOpen]);
 
+
+
   const toggleMenu = (e) => {
     e.stopPropagation();
     if (isMenuOpen) {
@@ -221,17 +287,25 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
     }
   };
 
+
+
   const handleMenuAction = (action) => {
     if (action) action();
     closeMenu();
   };
 
+
+
   const handlePopupClose = () => setIsPopupOpen(false);
+
+
 
   const toggleRecurrencePopup = (e) => {
     e.stopPropagation();
     setRecurrencePopupVisible((v) => !v);
   };
+
+
 
   const contrastingTextColor = getContrastingTextColor(todo.color);
   const cardStyle = {
@@ -242,12 +316,14 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
     backgroundColor: CATEGORY_COLORS[todo.category] || CATEGORY_COLORS['Others'],
   };
 
+
+
   if (todo.completed) {
     cardStyle.color = '#6b7280';
   }
-
+  const dueDateInfo = formatDueDate(todo.dueDate, userTimeZone);
   return (
-    <>
+    <div key={refreshKey}>
       <div className={`todo-item-card ${todo.completed ? 'completed' : ''}`} style={cardStyle}>
         <div className="todo-main-col">
           <span className="todo-item-title" onClick={() => setIsPopupOpen(true)}>
@@ -264,7 +340,7 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
               onMouseLeave={() => setCreatedTooltipVisible(false)}
             >
               <span className="date-label">Created:</span>
-              <span className="date-value">{formatCreatedAt(todo.createdAt)}</span>
+              <span className="date-value">{formatCreatedAt(todo.createdAt, userTimeZone)}</span>
             </div>
           </div>
           <div className="todo-pills-row">
@@ -295,8 +371,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
                 onMouseEnter={() => setDueTooltipVisible(true)}
                 onMouseLeave={() => setDueTooltipVisible(false)}
               >
-                <span className="date-value" style={{ color: formatDueDate(todo.dueDate).color }}>
-                  Completed: {todo.completedAt ? formatCreatedAt(todo.completedAt) : '—'}
+                <span className="date-value" style={{ color: formatDueDate(todo.dueDate, userTimeZone).color }}>
+                  Completed: {todo.completedAt ? formatCreatedAt(todo.completedAt, userTimeZone) : '—'}
                 </span>
               </div>
             ) : (
@@ -307,9 +383,9 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
                   onMouseEnter={() => setDueTooltipVisible(true)}
                   onMouseLeave={() => setDueTooltipVisible(false)}
                 >
-                  <AlarmClockIcon color={formatDueDate(todo.dueDate).color} />
-                  <span className="date-value" style={{ color: formatDueDate(todo.dueDate).color }}>
-                    {formatDueDate(todo.dueDate).text}
+                  <AlarmClockIcon color={formatDueDate(todo.dueDate, userTimeZone).color} />
+                  <span className="date-value" style={{ color: formatDueDate(todo.dueDate, userTimeZone).color }}>
+                    {formatDueDate(todo.dueDate, userTimeZone).text}
                   </span>
                 </div>
               )
@@ -333,12 +409,16 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
         </div>
       </div>
 
-      <Tooltip targetRef={createdDateRef} isVisible={createdTooltipVisible} content={formatFullDateTime(todo.createdAt)} />
+
+
+      <Tooltip targetRef={createdDateRef} isVisible={createdTooltipVisible} content={formatFullDateTime(todo.createdAt, userTimeZone)} />
       <Tooltip
         targetRef={dueDateRef}
         isVisible={dueTooltipVisible}
-        content={formatFullDateTime(todo.completed ? todo.completedAt : todo.dueDate)}
+        content={formatFullDateTime(todo.completed ? todo.completedAt : todo.dueDate, userTimeZone)}
       />
+
+
 
       <RecurrencePopup
         targetRef={recurrencePillRef}
@@ -346,7 +426,10 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
         recurrencePattern={todo.recurrencePattern}
         recurrenceEndsAt={todo.recurrenceEndsAt}
         onClose={() => setRecurrencePopupVisible(false)}
+        timeZone={userTimeZone}
       />
+
+
 
       {isMenuOpen && ReactDOM.createPortal(
         <div
@@ -373,6 +456,8 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
         document.body
       )}
 
+
+
       {isPopupVisible && (
         <div className={`todo-popup-overlay ${!isPopupOpen ? 'fade-out' : ''}`} onClick={handlePopupClose}>
           <div className="todo-popup-card" onClick={(e) => e.stopPropagation()}>
@@ -384,8 +469,10 @@ function TodoItem({ todo, toggleTodo, onEdit, deleteTodo, setCategoryFilter, set
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
+
+
 
 export default TodoItem;

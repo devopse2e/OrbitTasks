@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuthContext } from '../context/AuthContext'; // NEW: Import to get user
 import CompletedTasksSection from './CompletedTasksSection';
 import '../styles/CompletedTasksPanel.css';
 
@@ -15,6 +16,8 @@ const CompletedTasksPanel = ({
   setCategoryFilter,
   setPriorityFilter,
 }) => {
+  const { user } = useAuthContext(); // NEW: Get user for timezone
+  const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC'; // NEW: Get timezone
   const panelRef = useRef(null);
 
   // Track dragging state and position
@@ -61,6 +64,15 @@ const CompletedTasksPanel = ({
     };
   }, [dragging, offset]);
 
+  // NEW: Listen for timezone changes to refresh
+  useEffect(() => {
+    const handleTzChange = () => {
+      // Could force re-render or refetch if needed
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
+  }, []);
+
   if (!open) return null;
 
   return (
@@ -92,6 +104,7 @@ const CompletedTasksPanel = ({
         deleteTodo={deleteTodo}
         setCategoryFilter={setCategoryFilter}
         setPriorityFilter={setPriorityFilter}
+        userTimeZone={userTimeZone} // NEW: Pass userTimeZone to section
       />
     </div>
   );

@@ -115,6 +115,10 @@ export const userService = {
   getProfile: async () => {
     try {
       const response = await api.get('/user/profile');
+      // Sync timezone to localStorage for quick access
+      if (response.data && response.data.timezone) {
+        localStorage.setItem('userTimeZone', response.data.timezone);
+      }
       return response.data;
     } catch (error) {
       throw error;
@@ -124,6 +128,12 @@ export const userService = {
   updateProfile: async (profileData) => {
     try {
       const response = await api.put('/user/profile', profileData);
+      // Sync timezone to localStorage
+      if (response.data && response.data.timezone) {
+        localStorage.setItem('userTimeZone', response.data.timezone);
+      }
+      // Dispatch timezone changed event
+      window.dispatchEvent(new Event('timezoneChanged'));
       return response.data;
     } catch (error) {
       throw error;
@@ -178,9 +188,9 @@ export const todoService = {
     }
   },
 
-  parseTaskDetails: async (taskTitle) => {
+  parseTaskDetails: async ({taskTitle, timeZone }) => {
     try {
-      const response = await api.post('/nlp/parse-task-details', { taskTitle });
+      const response = await api.post('/nlp/parse-task-details', { taskTitle, timeZone });
       return response.data;
     } catch (error) {
       // If NLP fails, return null

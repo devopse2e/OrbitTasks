@@ -1,31 +1,50 @@
 const Todo = require('../models/todoModel');
+const User = require('../models/userModel'); // Import User to fetch timezone
 const mongoose = require('mongoose');
+const { addDays, addWeeks, addMonths, addYears, isAfter, parseISO } = require('date-fns');
+const { toZonedTime, fromZonedTime } = require('date-fns-tz');
 
-// Helper for recurrence
-function calculateNextDueDate(currentDueDate, pattern, interval = 1) {
-  if (!(currentDueDate instanceof Date)) {
-    currentDueDate = currentDueDate ? new Date(currentDueDate) : new Date();
+// Safe parseISO helper to handle non-string inputs
+function safeParseISO(dateOrString) {
+  if (!dateOrString) return null;
+  if (typeof dateOrString === 'string') return parseISO(dateOrString);
+  if (dateOrString instanceof Date) return dateOrString;
+  return null;
+}
+
+// Helper for recurrence (timezone-aware)
+function calculateNextDueDate(currentDueDate, pattern, interval = 1, timeZone = 'UTC') {
+  // Accept both Date and string ISO formats
+  let zonedDate;
+  if (typeof currentDueDate === 'string') {
+    zonedDate = toZonedTime(parseISO(currentDueDate), timeZone);
+  } else if (currentDueDate instanceof Date) {
+    zonedDate = toZonedTime(currentDueDate, timeZone);
+  } else {
+    zonedDate = toZonedTime(new Date(), timeZone);
   }
-  const nextDate = new Date(currentDueDate);
+
+  let nextUtcDate;
   switch (pattern) {
     case 'daily':
-      nextDate.setDate(nextDate.getDate() + interval);
+      nextUtcDate = addDays(zonedDate, interval);
       break;
     case 'weekly':
-      nextDate.setDate(nextDate.getDate() + 7 * interval);
+      nextUtcDate = addWeeks(zonedDate, interval);
       break;
     case 'monthly':
-      nextDate.setMonth(nextDate.getMonth() + interval);
+      nextUtcDate = addMonths(zonedDate, interval);
       break;
     case 'yearly':
-      nextDate.setFullYear(nextDate.getFullYear() + interval);
+      nextUtcDate = addYears(zonedDate, interval);
       break;
     case 'custom':
       return null;
     default:
       return null;
   }
-  return nextDate;
+
+  return fromZonedTime(nextUtcDate, timeZone).toISOString();
 }
 
 // Get all todos for logged-in user
@@ -43,7 +62,11 @@ const createTodo = async (req, res, next) => {
   try {
     const { text, notes, dueDate, priority, category, color, isRecurring, recurrencePattern, recurrenceEndsAt, recurrenceInterval, recurrenceCustomRule } = req.body;
 
-   // Auto-detect recurring tasks based on flag OR pattern
+    // Fetch user's timezone
+    const user = await User.findById(req.user.id).select('timezone');
+    const userTimeZone = user?.timezone || 'UTC';
+
+    // Auto-detect recurring tasks based on flag OR pattern
     const recurringFlag = Boolean(isRecurring) || (recurrencePattern && recurrencePattern !== 'none');
 
     const todoData = {
@@ -65,9 +88,8 @@ const createTodo = async (req, res, next) => {
       completedAt: null
     };
 
-
     if (todoData.isRecurring && dueDate) {
-      todoData.nextDueDate = calculateNextDueDate(new Date(dueDate), todoData.recurrencePattern, todoData.recurrenceInterval);
+      todoData.nextDueDate = calculateNextDueDate(dueDate, todoData.recurrencePattern, todoData.recurrenceInterval, userTimeZone);
     }
 
     const todo = new Todo(todoData);
@@ -83,6 +105,10 @@ const createTodo = async (req, res, next) => {
 const updateTodo = async (req, res, next) => {
   try {
     const { text, notes, completed, dueDate, priority, category, color, isRecurring, recurrencePattern, recurrenceEndsAt, recurrenceInterval, recurrenceCustomRule } = req.body;
+
+    // Fetch user's timezone
+    const user = await User.findById(req.user.id).select('timezone');
+    const userTimeZone = user?.timezone || 'UTC';
 
     const updates = {};
     if (text !== undefined) updates.text = text;
@@ -111,25 +137,31 @@ const updateTodo = async (req, res, next) => {
     }
 
     Object.assign(todo, updates);
+
+    // Update nextDueDate if recurrence details changed
+    if (todo.isRecurring && todo.dueDate) {
+      todo.nextDueDate = calculateNextDueDate(todo.dueDate, todo.recurrencePattern, todo.recurrenceInterval, userTimeZone);
+    }
+
     await todo.save();
 
     // Create next recurring task if task completed and recurring
     if (changesCompletion && completed && todo.isRecurring) {
       const now = new Date();
 
-      let baseDate = todo.dueDate ? new Date(todo.dueDate) : now;
-      const recurrenceEndsAtDate = todo.recurrenceEndsAt ? new Date(todo.recurrenceEndsAt) : null;
+      let baseDate = safeParseISO(todo.dueDate) || now;
+      const recurrenceEndsAtDate = safeParseISO(todo.recurrenceEndsAt);
 
-      let nextDue = calculateNextDueDate(baseDate, todo.recurrencePattern, todo.recurrenceInterval);
-      const today = new Date();
+      let nextDue = calculateNextDueDate(baseDate.toISOString(), todo.recurrencePattern, todo.recurrenceInterval, userTimeZone);
+      const today = fromZonedTime(now, userTimeZone);
       today.setHours(0, 0, 0, 0);
 
-      while (nextDue < today && (!recurrenceEndsAtDate || nextDue <= recurrenceEndsAtDate)) {
-        baseDate = nextDue;
-        nextDue = calculateNextDueDate(baseDate, todo.recurrencePattern, todo.recurrenceInterval);
+      while (isAfter(today, safeParseISO(nextDue)) && (!recurrenceEndsAtDate || isAfter(recurrenceEndsAtDate, safeParseISO(nextDue)))) {
+        baseDate = safeParseISO(nextDue);
+        nextDue = calculateNextDueDate(baseDate.toISOString(), todo.recurrencePattern, todo.recurrenceInterval, userTimeZone);
       }
 
-      if (nextDue && (!recurrenceEndsAtDate || nextDue <= recurrenceEndsAtDate)) {
+      if (nextDue && (!recurrenceEndsAtDate || !isAfter(safeParseISO(nextDue), recurrenceEndsAtDate))) {
         const nextTodo = new Todo({
           userId: todo.userId,
           text: todo.text,
@@ -144,7 +176,7 @@ const updateTodo = async (req, res, next) => {
           recurrenceInterval: todo.recurrenceInterval,
           recurrenceCustomRule: todo.recurrenceCustomRule,
           originalTaskId: todo.originalTaskId || todo._id,
-          nextDueDate: calculateNextDueDate(nextDue, todo.recurrencePattern, todo.recurrenceInterval),
+          nextDueDate: calculateNextDueDate(nextDue, todo.recurrencePattern, todo.recurrenceInterval, userTimeZone),
           completed: false,
           completedAt: null,
         });

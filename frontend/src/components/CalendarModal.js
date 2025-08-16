@@ -3,24 +3,21 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { generateRecurringInstances } from '../utils/dateUtils'; // Import the utility
+import { formatInTimeZone } from 'date-fns-tz'; // For timezone-aware formatting
+import { useAuthContext } from '../context/AuthContext'; // NEW: To get user timezone
 import '../styles/CalendarModal.css';
 
 // 🔹 DEBUG: Module load
 console.log('[CAL] CalendarModal module loaded');
 
 // --- DailyTasksModal Component ---
-function DailyTasksModal({ date, tasks, onClose, onTaskClick }) {
+function DailyTasksModal({ date, tasks, onClose, onTaskClick, userTimeZone }) { // NEW: Add userTimeZone prop
     return ReactDOM.createPortal(
         <div className="daily-tasks-backdrop" onClick={onClose}>
             <div className="daily-tasks-modal" onClick={e => e.stopPropagation()}>
                 <div className="daily-tasks-header">
                     <h2>
-                        Tasks for {date.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
+                        Tasks for {formatInTimeZone(date, userTimeZone, 'EEEE, MMMM d, yyyy')} {/* NEW: Timezone-aware formatting */}
                     </h2>
                     <button className="close-btn" onClick={onClose}>&times;</button>
                 </div>
@@ -58,7 +55,7 @@ function DailyTasksModal({ date, tasks, onClose, onTaskClick }) {
 }
 
 // --- TaskDetailViewer Component ---
-function TaskDetailViewer({ task, onClose }) {
+function TaskDetailViewer({ task, onClose, userTimeZone }) { // NEW: Add userTimeZone prop
     const popupRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
 
@@ -78,6 +75,9 @@ function TaskDetailViewer({ task, onClose }) {
         setIsClosing(true);
         setTimeout(onClose, 300);
     };
+
+    // NEW: Capitalize recurrence pattern
+    const recurrencePatternText = task.recurrencePattern ? task.recurrencePattern.charAt(0).toUpperCase() + task.recurrencePattern.slice(1) : 'None';
 
     return ReactDOM.createPortal(
         <div className={`task-viewer-overlay ${isClosing ? 'fade-out' : ''}`} onClick={handleClose}>
@@ -100,14 +100,29 @@ function TaskDetailViewer({ task, onClose }) {
                     {task.createdAt && (
                         <div className="detail-item">
                             <span className="detail-label">Created:</span>
-                            <span className="detail-value">{new Date(task.createdAt).toLocaleString()}</span>
+                            <span className="detail-value">{formatInTimeZone(new Date(task.createdAt), userTimeZone, 'PPpp')}</span> {/* NEW: Timezone-aware */}
                         </div>
                     )}
                     {task.dueDate && (
                         <div className="detail-item">
                             <span className="detail-label">Due Date:</span>
-                            <span className="detail-value">{new Date(task.dueDate).toLocaleString()}</span>
+                            <span className="detail-value">{formatInTimeZone(new Date(task.dueDate), userTimeZone, 'PPpp')}</span> {/* NEW: Timezone-aware */}
                         </div>
+                    )}
+                    {/* NEW: Recurrence Section */}
+                    {task.isRecurring && (
+                        <>
+                            <div className="detail-item">
+                                <span className="detail-label">Recurrence:</span>
+                                <span className="detail-value">{recurrencePatternText}</span>
+                            </div>
+                            <div className="detail-item">
+                                <span className="detail-label">Ends on:</span>
+                                <span className="detail-value">
+                                    {task.recurrenceEndsAt ? formatInTimeZone(new Date(task.recurrenceEndsAt), userTimeZone, 'PP') : 'Never'}
+                                </span>
+                            </div>
+                        </>
                     )}
                 </div>
                 <div className={`task-viewer-notes ${!task.notes ? 'placeholder' : ''}`}>
@@ -124,10 +139,22 @@ function CalendarModal({ tasks, onClose }) {
     // 🔹 DEBUG: When the component mounts
     console.log('[CAL] CalendarModal mounted');
 
+    const { user } = useAuthContext(); // NEW: Get user from context
+    const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC'; // NEW: Get timezone with fallback
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDayTasks, setSelectedDayTasks] = useState(null);
     const [taskViewerOpen, setTaskViewerOpen] = useState(false);
     const [taskToView, setTaskToView] = useState(null);
+
+    // NEW: Listen for timezone changes to refresh
+    useEffect(() => {
+        const handleTzChange = () => {
+            // Could force re-render or refetch if needed
+        };
+        window.addEventListener('timezoneChanged', handleTzChange);
+        return () => window.removeEventListener('timezoneChanged', handleTzChange);
+    }, []);
 
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -222,7 +249,7 @@ function CalendarModal({ tasks, onClose }) {
                 <div className="calendar-header">
                     <div className="nav-group">
                         <button className="nav-button" onClick={goToPreviousMonth} aria-label="Previous Month">&lt;</button>
-                        <h2>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</h2>
+                        <h2>{formatInTimeZone(currentDate, userTimeZone, 'LLLL yyyy')}</h2> {/* NEW: Timezone-aware month/year */}
                         <button className="nav-button" onClick={goToNextMonth} aria-label="Next Month">&gt;</button>
                     </div>
                     <button className="close-btn" onClick={onClose} aria-label="Close Calendar Modal">&times;</button>
@@ -251,7 +278,7 @@ function CalendarModal({ tasks, onClose }) {
                                             <div className="task-title">{task.text}</div>
                                             {task.dueDate && (
                                                 <div className="task-date due">
-                                                    Due: {new Date(task.dueDate).toLocaleDateString()}
+                                                    Due: {formatInTimeZone(new Date(task.dueDate), userTimeZone, 'PP')} {/* NEW: Timezone-aware */}
                                                 </div>
                                             )}
                                         </div>
@@ -279,11 +306,16 @@ function CalendarModal({ tasks, onClose }) {
                     tasks={selectedDayTasks.tasks}
                     onClose={closeDailyTasksModal}
                     onTaskClick={handleTaskClick}
+                    userTimeZone={userTimeZone} // NEW: Pass timezone to DailyTasksModal
                 />
             )}
 
             {taskViewerOpen && taskToView && (
-                <TaskDetailViewer task={taskToView} onClose={closeTaskViewer} />
+                <TaskDetailViewer
+                    task={taskToView}
+                    onClose={closeTaskViewer}
+                    userTimeZone={userTimeZone} // NEW: Pass timezone to TaskDetailViewer
+                />
             )}
         </div>,
         document.body

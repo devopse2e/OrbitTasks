@@ -10,10 +10,13 @@ import Register from './pages/Register';
 import UserProfileModal from './components/UserProfileModal';
 import CompletedTasksPanel from './components/CompletedTasksPanel';
 import UpdatePasswordModal from './components/UpdatePasswordModal';
+import TimezoneModal from './components/TimezoneModal'; 
 import { userService } from './services/api';
+
 
 import './styles/App.css';
 import './styles/SideBanner.css';
+
 
 const Toast = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
@@ -26,6 +29,7 @@ const Toast = ({ message, type = 'success', onClose }) => {
     </div>
   );
 };
+
 
 const ThemeToggle = ({ theme, setTheme }) => {
   const isLight = theme === 'light';
@@ -78,6 +82,7 @@ const ThemeToggle = ({ theme, setTheme }) => {
   );
 };
 
+
 const SideBannerLeft = ({ displayName }) => (
   <div className="side-banner left-banner">
     <span className="kinetic-welcome">
@@ -104,6 +109,7 @@ const SideBannerRight = () => {
   );
 };
 
+
 // --- Interactive Brand logo: uses theme for all colors ---
 const BrandLogo = ({ theme }) => {
   const [rotation, setRotation] = useState(0);
@@ -112,7 +118,9 @@ const BrandLogo = ({ theme }) => {
   const lastX = useRef(0);
   const requestRef = useRef();
 
+
   const AUTO_ROTATE_SPEED = 0.45;
+
 
   const animate = () => {
     if (!isHovered && !isDragging) {
@@ -121,10 +129,12 @@ const BrandLogo = ({ theme }) => {
     requestRef.current = requestAnimationFrame(animate);
   };
 
+
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
   }, [isHovered, isDragging]);
+
 
   const onPointerDown = (e) => {
     setDragging(true);
@@ -144,12 +154,14 @@ const BrandLogo = ({ theme }) => {
     e.target.releasePointerCapture(e.pointerId);
   };
 
+
   // Orbit dot position calculation
   const R = 15;
   const center = 23;
   const angleRad = (rotation - 90) * (Math.PI / 180);
   const dotX = center + R * Math.cos(angleRad);
   const dotY = center + R * Math.sin(angleRad);
+
 
   // Theme-aware color choices
   const isDark = theme === 'dark';
@@ -159,6 +171,7 @@ const BrandLogo = ({ theme }) => {
   const strokeColor = isDark ? bright : purple;
   const checkColor = isDark ? bright : purple;
   const textColor = isDark ? bright : purple;
+
 
   return (
     <span
@@ -233,24 +246,29 @@ const BrandLogo = ({ theme }) => {
   );
 };
 
+
 // --- Layout and routes ---
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useContext(AuthContext);
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
+
 const AppHeader = () => {
-  const { user, logout, setUser } = useContext(AuthContext);
-  const { todos, toggleTodo, editTodo, deleteTodo } = useTodosContext();
+  const { user, logout, updateUserProfile } = useContext(AuthContext);
+  const { todos, toggleTodo, editTodo, deleteTodo, fetchTodos } = useTodosContext(); // NEW: Add fetchTodos
   const [showMenu, setShowMenu] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [completedPanelOpen, setCompletedPanelOpen] = useState(false);
   const [updatePasswordOpen, setUpdatePasswordOpen] = useState(false);
+  const [isTimezoneModalOpen, setIsTimezoneModalOpen] = useState(false);
+
 
   // Toast feedback
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
   const [showToast, setShowToast] = useState(false);
+
 
   // Theme toggle
   const [theme, setTheme] = useState(() => {
@@ -262,6 +280,7 @@ const AppHeader = () => {
     document.body.classList.add(theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
 
   const avatarRef = useRef();
   const navigate = useNavigate();
@@ -275,22 +294,16 @@ const AppHeader = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+
   // Avatar SVG: theme-aware
   const avatarSVG = theme === 'dark'
     ? `data:image/svg+xml;utf8,<svg width='128' height='128' viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'><circle cx='64' cy='64' r='62' fill='%23313b71'/><circle cx='64' cy='50' r='28' fill='%23fff'/><ellipse cx='64' cy='97' rx='38' ry='23' fill='%235d3ebc'/></svg>`
     : `data:image/svg+xml;utf8,<svg width='128' height='128' viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'><circle cx='64' cy='64' r='62' fill='%237c3aed'/><circle cx='64' cy='50' r='28' fill='%23a78bfa'/><ellipse cx='64' cy='97' rx='38' ry='23' fill='%235d3ebc'/></svg>`;
 
+
   const handleProfileSave = async (updatedData) => {
     try {
-      const updatedUser = await userService.updateProfile(updatedData);
-      setUser(prevUser => {
-        const mergedUser = {
-          ...prevUser,
-          ...updatedUser,
-          token: updatedUser.token || prevUser.token,
-        };
-        return mergedUser;
-      });
+      await updateUserProfile(updatedData);
       setToastMessage('Profile updated successfully!');
       setToastType('success');
       setShowToast(true);
@@ -300,6 +313,7 @@ const AppHeader = () => {
       setShowToast(true);
     }
   };
+
 
   const handlePasswordUpdate = async ({ password, confirmPassword }) => {
     try {
@@ -314,22 +328,28 @@ const AppHeader = () => {
     }
   };
 
+
   const closeToast = () => setShowToast(false);
+
 
   const handleMenuClick = (option) => {
     setShowMenu(false);
     if (option === "profile") {
-      setProfileModalOpen(true); setCompletedPanelOpen(false); setUpdatePasswordOpen(false);
+      setProfileModalOpen(true); setCompletedPanelOpen(false); setUpdatePasswordOpen(false);setIsTimezoneModalOpen(false);
     } else if (option === "completed") {
-      setCompletedPanelOpen(true); setProfileModalOpen(false); setUpdatePasswordOpen(false);
+      setCompletedPanelOpen(true); setProfileModalOpen(false); setUpdatePasswordOpen(false); setIsTimezoneModalOpen(false);
     } else if (option === "settings") {
-      setUpdatePasswordOpen(true); setProfileModalOpen(false); setCompletedPanelOpen(false);
+      setUpdatePasswordOpen(true); setProfileModalOpen(false); setCompletedPanelOpen(false); setIsTimezoneModalOpen(false);
+    } else if (option === "timezone") {
+      setIsTimezoneModalOpen(true); setProfileModalOpen(false); setCompletedPanelOpen(false); setUpdatePasswordOpen(false);
     } else if (option === "logout") {
-      logout(); setProfileModalOpen(false); setCompletedPanelOpen(false); setUpdatePasswordOpen(false);
+      logout(); setProfileModalOpen(false); setCompletedPanelOpen(false); setUpdatePasswordOpen(false); setIsTimezoneModalOpen(false);
     }
   };
 
+
   const completedTodos = React.useMemo(() => todos.filter(t => t.completed), [todos]);
+
 
   return (
     <>
@@ -398,6 +418,7 @@ const AppHeader = () => {
                   <button onClick={() => handleMenuClick("profile")} type="button" className="dropdown-item">Profile</button>
                   <button onClick={() => handleMenuClick("completed")} type="button" className="dropdown-item">Completed Tasks</button>
                   <button onClick={() => handleMenuClick("settings")} type="button" className="dropdown-item">Update Password</button>
+                  <button onClick={() => handleMenuClick("timezone")} type="button" className="dropdown-item">Change Timezone</button> 
                   <div className="theme-toggle-row dropdown-item" style={{ padding: "11px 24px 11px 22px", background: "none", margin: 0, cursor: "default" }}>
                     <ThemeToggle theme={theme} setTheme={setTheme} />
                   </div>
@@ -436,9 +457,16 @@ const AppHeader = () => {
           setPriorityFilter={() => { }}
         />
       )}
+      {isTimezoneModalOpen && user && (
+        <TimezoneModal
+          isOpen={isTimezoneModalOpen}
+          onClose={() => setIsTimezoneModalOpen(false)}
+        />
+      )}
     </>
   );
 };
+
 
 function AppLayout() {
   const { isAuthenticated, user } = useContext(AuthContext);
@@ -473,6 +501,7 @@ function AppLayout() {
   );
 }
 
+
 function App() {
   return (
     <AuthProvider>
@@ -484,5 +513,6 @@ function App() {
     </AuthProvider>
   );
 }
+
 
 export default App;

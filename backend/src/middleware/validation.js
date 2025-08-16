@@ -8,7 +8,6 @@ const registrationSchema = Joi.object({
     .messages({ 'any.only': 'Passwords do not match.' })
 });
 
-
 const loginSchema = Joi.object({
   email: Joi.string().email().lowercase().required(),
   password: Joi.string().required()
@@ -29,6 +28,12 @@ const updatePasswordSchema = Joi.object({
     .messages({ 'any.only': 'Passwords do not match.' })
 });
 
+// --- NEW: Profile Update Schema ---
+const profileUpdateSchema = Joi.object({
+  displayName: Joi.string().trim().optional(),
+  dob: Joi.date().allow(null).optional(),
+  timezone: Joi.string().optional() // Can add custom validation for IANA if needed
+}).min(1); // At least one field must be provided for update
 
 // --- Schemas for Todos ---
 const todoSchema = Joi.object({
@@ -90,8 +95,8 @@ const todoUpdateSchema = Joi.object({
     .valid('daily', 'weekly', 'monthly', 'yearly', 'custom', 'none')
     .when('isRecurring', {
       is: true,
-      then: Joi.not().valid('none').required(),
-      otherwise: Joi.valid('none').required()
+      then: Joi.not().valid('none').optional(),
+      otherwise: Joi.valid('none').optional()
     })
     .optional(),
   recurrenceInterval: Joi.number()
@@ -107,6 +112,7 @@ const todoUpdateSchema = Joi.object({
     .optional()
 }).min(1);
 
+
 // --- Middleware for Authentication ---
 const validateRegistration = (req, res, next) => {
   const { error } = registrationSchema.validate(req.body);
@@ -115,12 +121,14 @@ const validateRegistration = (req, res, next) => {
   next();
 };
 
+
 const validateLogin = (req, res, next) => {
   const { error } = loginSchema.validate(req.body);
   if (error)
     return res.status(400).json({ error: error.details[0].message });
   next();
 };
+
 
 // --- Middleware for Forgot Password Direct ---
 const validateForgotPasswordDirect = (req, res, next) => {
@@ -130,12 +138,23 @@ const validateForgotPasswordDirect = (req, res, next) => {
   next();
 };
 
+
 const validatePasswordUpdate = (req, res, next) => {
   const { error } = updatePasswordSchema.validate(req.body);
   if (error)
     return res.status(400).json({ error: error.details[0].message });
   next();
 };
+
+
+// --- NEW: Middleware for Profile Update ---
+const validateProfileUpdate = (req, res, next) => {
+  const { error } = profileUpdateSchema.validate(req.body);
+  if (error)
+    return res.status(400).json({ error: error.details[0].message });
+  next();
+};
+
 
 // --- Middleware for Todos ---
 const validateTodo = (req, res, next) => {
@@ -145,6 +164,7 @@ const validateTodo = (req, res, next) => {
   next();
 };
 
+
 const validateTodoUpdate = (req, res, next) => {
   const { error } = todoUpdateSchema.validate(req.body);
   if (error)
@@ -152,11 +172,13 @@ const validateTodoUpdate = (req, res, next) => {
   next();
 };
 
+
 module.exports = {
   validateRegistration,
   validateLogin,
   validateForgotPasswordDirect, // Use this in your forgot password direct route!
   validatePasswordUpdate,
+  validateProfileUpdate, // <-- New middleware for profile updates
   validateTodo,
   validateTodoUpdate,
 };

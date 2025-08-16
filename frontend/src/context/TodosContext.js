@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { todoService } from '../services/api';
 import { AuthContext } from './AuthContext';
+import { addDays, addWeeks, addMonths, addYears, isAfter } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 const TodosContext = createContext(null);
 
@@ -11,6 +13,9 @@ export const TodosProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   const isGuest = user?.isGuest;
+
+  // Compute userTimeZone with fallbacks
+  const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC';
 
   // Safe JSON parse helper for guest todo data in localStorage
   const safeParseJson = (json) => {
@@ -47,6 +52,15 @@ export const TodosProvider = ({ children }) => {
 
   useEffect(() => {
     fetchTodos();
+  }, [fetchTodos]);
+
+  // Listen for timezone changes to refetch todos (e.g., for recurrence re-calculation)
+  useEffect(() => {
+    const handleTzChange = () => {
+      fetchTodos(); // Refetch to ensure any timezone-dependent logic updates
+    };
+    window.addEventListener('timezoneChanged', handleTzChange);
+    return () => window.removeEventListener('timezoneChanged', handleTzChange);
   }, [fetchTodos]);
 
   // Helper to update guest todos and sync to localStorage
@@ -121,8 +135,41 @@ export const TodosProvider = ({ children }) => {
     }
   }, [isGuest, updateGuestTodos]);
 
-  // Toggle todo completion with optimistic UI update
+  // --- Helper function to calculate the next occurrence (zoned) ---
+  const getNextOccurrence = (currentDueDate, pattern, interval) => {
+    const zonedDate = toZonedTime(new Date(currentDueDate), userTimeZone);
+    const utcDate = fromZonedTime(zonedDate, userTimeZone); // To UTC for addition
+
+    let newUtcDate;
+    switch (pattern) {
+      case 'daily':
+        newUtcDate = addDays(utcDate, interval);
+        break;
+      case 'weekly':
+        newUtcDate = addWeeks(utcDate, interval);
+        break;
+      case 'monthly':
+        newUtcDate = addMonths(utcDate, interval);
+        break;
+      case 'yearly':
+        newUtcDate = addYears(utcDate, interval);
+        break;
+      default:
+        return zonedDate; // Return original zoned if pattern is unknown
+    }
+
+    return toZonedTime(newUtcDate, userTimeZone); // Back to zoned
+  };
+
+  // --- Updated toggleTodo function with recurring logic ---
   const toggleTodo = useCallback(async (id, completed) => {
+    const currentTodo = todos.find((t) => t._id === id);
+    if (!currentTodo) {
+      setError(new Error("Todo not found"));
+      return;
+    }
+
+    // Toggle todo completion with optimistic UI update
     try {
       if (isGuest) {
         updateGuestTodos((prev) =>
@@ -134,13 +181,15 @@ export const TodosProvider = ({ children }) => {
         );
       } else {
         // Optimistically update todos state
-        setTodos((prev) =>
-          prev.map((t) =>
+        setTodos((prev) => {
+          const newPrev = prev.map((t) =>
             t._id === id
               ? { ...t, completed, completedAt: completed ? new Date().toISOString() : null }
               : t
-          )
-        );
+          );
+          return newPrev;
+        });
+
         const currentTodo = todos.find((t) => t._id === id);
         if (!currentTodo) throw new Error("Todo not found");
         const payload = {
@@ -149,12 +198,15 @@ export const TodosProvider = ({ children }) => {
           recurrencePattern: currentTodo.recurrencePattern || "none",
         };
         await todoService.updateTodo(id, payload);
+
+        // Refresh todos to sync with backend (important for recurring task new IDs)
         await fetchTodos();
       }
     } catch (err) {
       setError(err);
+      await fetchTodos(); // Revert to backend state on error
     }
-  }, [isGuest, updateGuestTodos, fetchTodos, todos]);
+  }, [isGuest, updateGuestTodos, todos, fetchTodos, deleteTodo, userTimeZone]);
 
   return (
     <TodosContext.Provider

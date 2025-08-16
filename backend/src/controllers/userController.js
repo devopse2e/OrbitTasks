@@ -1,10 +1,7 @@
-// /src/controllers/userController.js
-
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs'); // to hash passwords securely
 
-// Helper to generate JWT token (reuse from authController)
+// Helper to generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
@@ -14,15 +11,21 @@ const generateToken = (id) => {
 // GET /api/user/profile
 const getUserProfile = async (req, res, next) => {
   try {
-    const userId = req.user.id; // set by your auth middleware
-
-    const user = await User.findById(userId).select('-password'); // exclude sensitive fields like password
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password');
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    // Return all public user fields, including timezone
+    res.json({
+      _id: user._id,
+      email: user.email,
+      displayName: user.displayName,
+      dob: user.dob,
+      timezone: user.timezone, // <-- Return the timezone
+    });
   } catch (error) {
     next(error);
   }
@@ -31,26 +34,30 @@ const getUserProfile = async (req, res, next) => {
 // PUT /api/user/profile
 const updateUserProfile = async (req, res, next) => {
   try {
-    const { displayName, dob } = req.body || {};
+    // <-- Destructure timezone from the request body
+    const { displayName, dob, timezone } = req.body || {};
     const userId = req.user.id;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
+    // Update fields if they were provided in the request
     if (displayName !== undefined) user.displayName = displayName;
     if (dob !== undefined) user.dob = dob;
+    if (timezone !== undefined) user.timezone = timezone; // <-- Update the timezone
 
     await user.save();
 
-    // Generate a new token (optional), to keep authentication fresh
     const token = generateToken(user._id);
 
+    // Return the updated user profile in the response
     res.json({
       _id: user._id,
       email: user.email,
       displayName: user.displayName,
       dob: user.dob,
-      token, // Return token so frontend can update it if needed
+      timezone: user.timezone, // <-- Return the updated timezone
+      token,
     });
   } catch (error) {
     next(error);
@@ -69,10 +76,11 @@ const updateUserPassword = async (req, res, next) => {
     }
 
     const userId = req.user.id;
-    const user = await User.findById(userId);
+    // We need to select the password field here since it's excluded by default
+    const user = await User.findById(userId).select('+password');
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    user.password = password;   // <---- Let pre-save hook hash it once
+    user.password = password;
     await user.save();
 
     res.json({ message: 'Password updated successfully.' });
@@ -80,8 +88,6 @@ const updateUserPassword = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 module.exports = {
   getUserProfile,
