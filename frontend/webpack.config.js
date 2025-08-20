@@ -44,7 +44,7 @@ module.exports = {
     compress: true, // Enable gzip compression for faster dev loading
     hot: true,
     open: true,
-    port: 3000,
+    port: 80,
     historyApiFallback: true,
     proxy: [
       {

@@ -481,7 +481,8 @@ function AppLayout() {
       )}
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<ProtectedRoute><TodoList /></ProtectedRoute>} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />  
+          <Route path="/dashboard" element={<ProtectedRoute><TodoList /></ProtectedRoute>} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <UserProfileModal
@@ -494,7 +495,7 @@ function AppLayout() {
           } />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} /> 
         </Routes>
       </main>
     </div>

@@ -4,9 +4,9 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: 90vh;
     width: 100%;
-    background-color: #111827; /* Dark background matching the app */
+    /* background-color: #111827; Dark background matching the app */
     padding: 20px;
 }
 
@@ -42,6 +42,7 @@
 
 .input-group {
     text-align: left;
+
 }
 
 .input-group label {
@@ -219,6 +220,7 @@
   .modal .input-group input {
     background: #22243a;
     border: 1px solid #3a3d5c;
+    border-radius: 10px;
     color: #ebecfa;
   }
   
@@ -277,7 +279,12 @@
   .forgot-link {
     color: #8b5cf6 !important;
     font-weight: 500;
+    font-size: 1rem;
     transition: color 0.2s;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    margin-bottom: 10px; 
   }
   .forgot-link:hover {
     color: #c4b5fd !important;
@@ -292,3 +299,44 @@
     }
   }
   
+  .success-message {
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #bbf7d0;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.input-group-fp {
+    text-align: left;
+    margin-bottom: 15px;
+    
+}
+
+.input-group-fp label {
+    display: block;
+    color: #d1d5db;
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.input-group-fp input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    background-color: #374151;
+    color: #e5e7eb;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.input-group-fp input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.4);
+}

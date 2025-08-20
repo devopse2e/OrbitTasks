@@ -5,7 +5,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 app.use(express.static(path.join(__dirname, 'dist')));

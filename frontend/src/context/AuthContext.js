@@ -36,6 +36,11 @@ export const AuthProvider = ({ children }) => {
     setUserState(newUser);
   }, []);
 
+  // NEW: Function to clear error state
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   // On app mount, refresh user profile from backend if token exists
   useEffect(() => {
     async function refreshUserProfile() {
@@ -199,6 +204,7 @@ export const AuthProvider = ({ children }) => {
         forgotPasswordDirect,
         setUser,
         updateUserProfile,
+        clearError, // NEW: Expose clearError
       }}
     >
       {children}
