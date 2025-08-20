@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:latest  # Compatible with DocumentDB (MongoDB 4.x API)
+    container_name: mongo-test
+    ports:
+      - '27017:27017'  # Map to laptop for direct access if needed
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: orbittasks  # Set your test credentials
+      MONGO_INITDB_ROOT_PASSWORD: Testpass123!
+      MONGO_INITDB_DATABASE: orbittasks
+    volumes:
+      - mongo-data:/data/db  # Persist data locally
+    networks:
+      - app-network
+
+  backend:
+    build: ./backend  # Builds from your backend Dockerfile
+    container_name: backend-test
+    ports:
+      - '3001:3001'
+    environment:
+      MONGO_URI: mongodb://orbittasks:Testpass123!@mongo:27017/orbittasks?authSource=admin  # Connects to mongo service
+      PORT: 3001
+      JWT_SECRET: RFBfr3t/W+MU25ri7529BJCfep8dJ+re6DfKey/2NMM=
+      TZ: Asia/Kolkata
+    depends_on:
+      - mongo  # Starts after MongoDB
+    networks:
+      - app-network
+    volumes:
+      - /etc/localtime:/etc/localtime:ro  # Sync host timezone
+      - /etc/timezone:/etc/timezone:ro    # Sync host timezone name
+
+  frontend:
+    build: ./frontend  # Builds from your frontend Dockerfile
+    container_name: frontend-test
+    ports:
+      - '80:80'  # Maps to Nginx port
+    environment:
+      TZ: Asia/Kolkata
+    depends_on:
+      - backend  # Starts after backend
+    networks:
+      - app-network
+    volumes:
+      - /etc/localtime:/etc/localtime:ro  # Sync host timezone
+      - /etc/timezone:/etc/timezone:ro    # Sync host timezone name
+
+networks:
+  app-network:
+    driver: bridge  # Allows containers to communicate via service names (e.g., 'backend')
+
+volumes:
+  mongo-data:
