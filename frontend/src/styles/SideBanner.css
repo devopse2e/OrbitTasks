@@ -25,7 +25,12 @@
   padding: 4px 6px 0 6px; /* Avoid clipping in cursive tails */
   animation: floatFadeIn 1.2s cubic-bezier(.14,1,.22,1) forwards;
 }
-
+.banner-content {
+  display: flex;
+  flex-direction: column;     /* Stack vertically! */
+  align-items: flex-start;
+  width: 100%;
+}
 .left-banner {
   justify-content: flex-start;
   left: 40px;
@@ -68,9 +73,18 @@
   letter-spacing: 0.03em;
 }
 
-/* Right banner kinetic tip */
+/* Tips section styling */
+
+.tips-section {
+  margin-top: 10px;
+  font-size: 1.6rem; /* Lower than headline */
+  min-height: 2em; /* Prevent layout jump */
+  display: block;
+}
+
+/* Individual tip styling with animation */
 .kinetic-tip {
-  font-size: 1.16em;
+  font-size: inherit; /* Inherit from tips-section for lower size */
   font-weight: 600;
   color: transparent;
   background: linear-gradient(92deg, #a89cf0, #7a3ced 85%);
@@ -85,7 +99,15 @@
   will-change: opacity, transform;
   user-select: none;
 }
-
+.kinetic-tip.active {
+  opacity: 1;
+  transform: translateY(0) scale(1.00);
+  position: static;
+}
+.tips-section {
+  position: relative;
+  height: 2.5em;
+}
 /* Keyframe animations - unchanged */
 @keyframes floatFadeIn {
   from { opacity: 0; transform: translateY(-22px); }
