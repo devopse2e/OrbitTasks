@@ -12,11 +12,9 @@ import CompletedTasksPanel from './components/CompletedTasksPanel';
 import UpdatePasswordModal from './components/UpdatePasswordModal';
 import TimezoneModal from './components/TimezoneModal'; 
 import { userService } from './services/api';
-
-
+import SideBannerLeft from './components/SideBanner'; s
 import './styles/App.css';
 import './styles/SideBanner.css';
-
 
 const Toast = ({ message, type = 'success', onClose }) => {
   useEffect(() => {
@@ -29,7 +27,6 @@ const Toast = ({ message, type = 'success', onClose }) => {
     </div>
   );
 };
-
 
 const ThemeToggle = ({ theme, setTheme }) => {
   const isLight = theme === 'light';
@@ -82,34 +79,6 @@ const ThemeToggle = ({ theme, setTheme }) => {
   );
 };
 
-
-const SideBannerLeft = ({ displayName }) => (
-  <div className="side-banner left-banner">
-    <span className="kinetic-welcome">
-      <span className="wave-emoji">👋</span>
-      Welcome, <span className="kinetic-name">{displayName || 'User'}</span>
-    </span>
-  </div>
-);
-const tips = [
-  "Move at the speed of thought.",
-  "Productivity. Beauty. Zero friction.",
-  "Stay in your orbit—let OrbitTasks handle the rest."
-];
-const SideBannerRight = () => {
-  const [tipIdx, setTipIdx] = useState(0);
-  useEffect(() => {
-    const timeout = setTimeout(() => setTipIdx(i => (i + 1) % tips.length), 3900);
-    return () => clearTimeout(timeout);
-  }, [tipIdx]);
-  return (
-    <div className="side-banner right-banner">
-      <span className="kinetic-tip" key={tipIdx}>{tips[tipIdx]}</span>
-    </div>
-  );
-};
-
-
 // --- Interactive Brand logo: uses theme for all colors ---
 const BrandLogo = ({ theme }) => {
   const [rotation, setRotation] = useState(0);
@@ -118,9 +87,7 @@ const BrandLogo = ({ theme }) => {
   const lastX = useRef(0);
   const requestRef = useRef();
 
-
   const AUTO_ROTATE_SPEED = 0.45;
-
 
   const animate = () => {
     if (!isHovered && !isDragging) {
@@ -129,12 +96,10 @@ const BrandLogo = ({ theme }) => {
     requestRef.current = requestAnimationFrame(animate);
   };
 
-
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
   }, [isHovered, isDragging]);
-
 
   const onPointerDown = (e) => {
     setDragging(true);
@@ -154,14 +119,12 @@ const BrandLogo = ({ theme }) => {
     e.target.releasePointerCapture(e.pointerId);
   };
 
-
   // Orbit dot position calculation
   const R = 15;
   const center = 23;
   const angleRad = (rotation - 90) * (Math.PI / 180);
   const dotX = center + R * Math.cos(angleRad);
   const dotY = center + R * Math.sin(angleRad);
-
 
   // Theme-aware color choices
   const isDark = theme === 'dark';
@@ -171,7 +134,6 @@ const BrandLogo = ({ theme }) => {
   const strokeColor = isDark ? bright : purple;
   const checkColor = isDark ? bright : purple;
   const textColor = isDark ? bright : purple;
-
 
   return (
     <span
@@ -246,13 +208,11 @@ const BrandLogo = ({ theme }) => {
   );
 };
 
-
 // --- Layout and routes ---
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useContext(AuthContext);
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
-
 
 const AppHeader = () => {
   const { user, logout, updateUserProfile } = useContext(AuthContext);
@@ -263,12 +223,10 @@ const AppHeader = () => {
   const [updatePasswordOpen, setUpdatePasswordOpen] = useState(false);
   const [isTimezoneModalOpen, setIsTimezoneModalOpen] = useState(false);
 
-
   // Toast feedback
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
   const [showToast, setShowToast] = useState(false);
-
 
   // Theme toggle
   const [theme, setTheme] = useState(() => {
@@ -280,7 +238,6 @@ const AppHeader = () => {
     document.body.classList.add(theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
-
 
   const avatarRef = useRef();
   const navigate = useNavigate();
@@ -294,12 +251,10 @@ const AppHeader = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-
   // Avatar SVG: theme-aware
   const avatarSVG = theme === 'dark'
     ? `data:image/svg+xml;utf8,<svg width='128' height='128' viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'><circle cx='64' cy='64' r='62' fill='%23313b71'/><circle cx='64' cy='50' r='28' fill='%23fff'/><ellipse cx='64' cy='97' rx='38' ry='23' fill='%235d3ebc'/></svg>`
     : `data:image/svg+xml;utf8,<svg width='128' height='128' viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'><circle cx='64' cy='64' r='62' fill='%237c3aed'/><circle cx='64' cy='50' r='28' fill='%23a78bfa'/><ellipse cx='64' cy='97' rx='38' ry='23' fill='%235d3ebc'/></svg>`;
-
 
   const handleProfileSave = async (updatedData) => {
     try {
@@ -314,7 +269,6 @@ const AppHeader = () => {
     }
   };
 
-
   const handlePasswordUpdate = async ({ password, confirmPassword }) => {
     try {
       await userService.updatePassword({ password, confirmPassword });
@@ -328,9 +282,7 @@ const AppHeader = () => {
     }
   };
 
-
   const closeToast = () => setShowToast(false);
-
 
   const handleMenuClick = (option) => {
     setShowMenu(false);
@@ -347,9 +299,7 @@ const AppHeader = () => {
     }
   };
 
-
   const completedTodos = React.useMemo(() => todos.filter(t => t.completed), [todos]);
-
 
   return (
     <>
@@ -467,7 +417,6 @@ const AppHeader = () => {
   );
 };
 
-
 function AppLayout() {
   const { isAuthenticated, user } = useContext(AuthContext);
   return (
@@ -476,7 +425,7 @@ function AppLayout() {
       {isAuthenticated && user && (
         <>
           <SideBannerLeft displayName={user.displayName} />
-          <SideBannerRight />
+          {/* REMOVED: <SideBannerRight /> */}
         </>
       )}
       <main className="main-content">
@@ -502,7 +451,6 @@ function AppLayout() {
   );
 }
 
-
 function App() {
   return (
     <AuthProvider>
@@ -514,6 +462,5 @@ function App() {
     </AuthProvider>
   );
 }
-
 
 export default App;
