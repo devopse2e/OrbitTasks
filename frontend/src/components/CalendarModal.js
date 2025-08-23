@@ -1,5 +1,6 @@
 // frontend/src/components/CalendarModal.js
 
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { generateRecurringInstances } from '../utils/dateUtils'; // Import the utility
@@ -7,8 +8,6 @@ import { formatInTimeZone } from 'date-fns-tz'; // For timezone-aware formatting
 import { useAuthContext } from '../context/AuthContext'; // NEW: To get user timezone
 import '../styles/CalendarModal.css';
 
-// 🔹 DEBUG: Module load
-console.log('[CAL] CalendarModal module loaded');
 
 // --- DailyTasksModal Component ---
 function DailyTasksModal({ date, tasks, onClose, onTaskClick, userTimeZone }) { // NEW: Add userTimeZone prop
@@ -54,10 +53,12 @@ function DailyTasksModal({ date, tasks, onClose, onTaskClick, userTimeZone }) { 
     );
 }
 
+
 // --- TaskDetailViewer Component ---
 function TaskDetailViewer({ task, onClose, userTimeZone }) { // NEW: Add userTimeZone prop
     const popupRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
+
 
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -71,13 +72,16 @@ function TaskDetailViewer({ task, onClose, userTimeZone }) { // NEW: Add userTim
         };
     }, []);
 
+
     const handleClose = () => {
         setIsClosing(true);
         setTimeout(onClose, 300);
     };
 
+
     // NEW: Capitalize recurrence pattern
     const recurrencePatternText = task.recurrencePattern ? task.recurrencePattern.charAt(0).toUpperCase() + task.recurrencePattern.slice(1) : 'None';
+
 
     return ReactDOM.createPortal(
         <div className={`task-viewer-overlay ${isClosing ? 'fade-out' : ''}`} onClick={handleClose}>
@@ -134,18 +138,18 @@ function TaskDetailViewer({ task, onClose, userTimeZone }) { // NEW: Add userTim
     );
 }
 
+
 // --- CalendarModal Component ---
 function CalendarModal({ tasks, onClose }) {
-    // 🔹 DEBUG: When the component mounts
-    console.log('[CAL] CalendarModal mounted');
-
     const { user } = useAuthContext(); // NEW: Get user from context
     const userTimeZone = user?.timezone || localStorage.getItem('userTimeZone') || 'UTC'; // NEW: Get timezone with fallback
+
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDayTasks, setSelectedDayTasks] = useState(null);
     const [taskViewerOpen, setTaskViewerOpen] = useState(false);
     const [taskToView, setTaskToView] = useState(null);
+
 
     // NEW: Listen for timezone changes to refresh
     useEffect(() => {
@@ -156,10 +160,12 @@ function CalendarModal({ tasks, onClose }) {
         return () => window.removeEventListener('timezoneChanged', handleTzChange);
     }, []);
 
+
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const daysInMonth = endOfMonth.getDate();
     const firstDayOfWeek = startOfMonth.getDay();
+
 
     const daysArray = [];
     for (let i = 0; i < firstDayOfWeek; i++) {
@@ -169,47 +175,31 @@ function CalendarModal({ tasks, onClose }) {
         daysArray.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), i));
     }
 
-    // 🔹 DEBUG: Log tasks received by modal
-    console.log('[CAL] tasks prop:', tasks?.map(t => ({
-        text: t.text,
-        isRecurring: t.isRecurring,
-        recurrencePattern: t.recurrencePattern,
-        recurrenceInterval: t.recurrenceInterval,
-        dueDate: t.dueDate
-    })));
 
     const expandedTasks = React.useMemo(() => {
-        console.log('[CAL] Expanding tasks for range:', startOfMonth, '→', endOfMonth);
-        console.log('[CAL] tasks before expansion:', tasks?.map(t => ({
-            text: t.text,
-            isRecurring: t.isRecurring,
-            recurrencePattern: t.recurrencePattern,
-            recurrenceInterval: t.recurrenceInterval
-          })));
         return tasks.flatMap(task => {
-            console.log('[CAL] Calling generateRecurringInstances for:', {
-                text: task.text,
-                isRecurring: task.isRecurring,
-                recurrencePattern: task.recurrencePattern,
-                recurrenceInterval: task.recurrenceInterval
-            });
             return generateRecurringInstances(task, startOfMonth, endOfMonth);
         });
     }, [tasks, startOfMonth, endOfMonth]);
+
 
     const tasksForDay = useCallback((day) => {
         if (!day) return [];
         const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
         const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999);
 
+
         return expandedTasks.filter(t => {
             if (t.completed) return false;
+
 
             const dueDate = t.dueDate ? new Date(t.dueDate) : null;
             const createdAt = t.createdAt ? new Date(t.createdAt) : null;
 
+
             const isDueOnDay = dueDate && dueDate >= dayStart && dueDate <= dayEnd;
             const isCreatedOnDay = createdAt && createdAt >= dayStart && createdAt <= dayEnd;
+
 
             if (isDueOnDay) return true;
             if (!dueDate && isCreatedOnDay) return true;
@@ -217,40 +207,45 @@ function CalendarModal({ tasks, onClose }) {
         });
     }, [expandedTasks]);
 
+
     const goToPreviousMonth = () => {
         setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
     };
+
 
     const goToNextMonth = () => {
         setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     };
 
+
     const handleShowMore = (day, allTasks) => {
         setSelectedDayTasks({ date: day, tasks: allTasks });
     };
 
+
     const closeDailyTasksModal = () => {
         setSelectedDayTasks(null);
     };
+
 
     const handleTaskClick = (task) => {
         setTaskToView(task);
         setTaskViewerOpen(true);
     };
 
+
     const closeTaskViewer = () => {
         setTaskViewerOpen(false);
         setTaskToView(null);
     };
 
+
     return ReactDOM.createPortal(
-        <div className="calendar-backdrop">
+        <div className="calendar-right">
             <div className="calendar-modal">
                 <div className="calendar-header">
                     <div className="nav-group">
-                        <button className="nav-button" onClick={goToPreviousMonth} aria-label="Previous Month">&lt;</button>
-                        <h2>{formatInTimeZone(currentDate, userTimeZone, 'LLLL yyyy')}</h2> {/* NEW: Timezone-aware month/year */}
-                        <button className="nav-button" onClick={goToNextMonth} aria-label="Next Month">&gt;</button>
+                        <button className="nav-button" onClick={goToPreviousMonth} aria-label="Previous Month">&lt;</button><h2>{formatInTimeZone(currentDate, userTimeZone, 'LLLL yyyy')}</h2> {/* NEW: Timezone-aware month/year */}<button className="nav-button" onClick={goToNextMonth} aria-label="Next Month">&gt;</button>
                     </div>
                     <button className="close-btn" onClick={onClose} aria-label="Close Calendar Modal">&times;</button>
                 </div>
@@ -263,14 +258,17 @@ function CalendarModal({ tasks, onClose }) {
                     <div className="calendar-weekday">Fri</div>
                     <div className="calendar-weekday">Sat</div>
 
+
                     {daysArray.map((day, index) => {
                         const allDayTasks = day ? tasksForDay(day) : [];
+                        const hasTasks = allDayTasks.length > 0;
                         const displayTasks = allDayTasks.slice(0, 3);
                         const hasMoreTasks = allDayTasks.length > 3;
                         const isToday = day && day.toDateString() === new Date().toDateString();
 
+
                         return (
-                            <div key={index} className={`calendar-day ${!day ? 'empty' : ''} ${isToday ? 'today' : ''}`}>
+                            <div key={index} className={`calendar-day${!day ? ' empty' : ''}${hasTasks ? ' has-tasks' : ''} ${isToday ? ' today' : ''}`}>
                                 {day && <div className="day-number">{day.getDate()}</div>}
                                 <div className="tasks-list">
                                     {displayTasks.map(task => (
@@ -300,6 +298,7 @@ function CalendarModal({ tasks, onClose }) {
                 </div>
             </div>
 
+
             {selectedDayTasks && (
                 <DailyTasksModal
                     date={selectedDayTasks.date}
@@ -309,6 +308,7 @@ function CalendarModal({ tasks, onClose }) {
                     userTimeZone={userTimeZone} // NEW: Pass timezone to DailyTasksModal
                 />
             )}
+
 
             {taskViewerOpen && taskToView && (
                 <TaskDetailViewer
@@ -321,5 +321,6 @@ function CalendarModal({ tasks, onClose }) {
         document.body
     );
 }
+
 
 export default CalendarModal;
