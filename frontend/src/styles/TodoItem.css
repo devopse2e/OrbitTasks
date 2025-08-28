@@ -322,7 +322,7 @@ body.light .todo-popup-overlay {
   max-width: 500px;
   width: 90%;
   box-shadow: 0 4px 30px rgba(60, 54, 99, 0.15);
-  position: relative;
+  position: fixed;
   transform: scale(0.95);
   opacity: 0;
   animation: popupIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
