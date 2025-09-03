@@ -77,6 +77,7 @@ cd frontend
 npm install
 
 # 3️⃣ Start the backend
+npm run build
 npm start
 ```
 
